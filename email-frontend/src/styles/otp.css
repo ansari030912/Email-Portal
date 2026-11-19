@@ -1,0 +1,261 @@
+.otp-verifier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.otp {
+  display: flex;
+  gap: 10px;
+  perspective: 600px;
+}
+.otp-box {
+  width: 52px;
+  height: 62px;
+  border-radius: 14px;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  caret-color: var(--primary);
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s, background 0.18s;
+  font-variant-numeric: tabular-nums;
+}
+.otp-box:nth-child(3) {
+  margin-right: 10px;
+}
+.otp-box:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 5px var(--primary-50);
+  transform: translateY(-2px);
+}
+.otp-box.filled {
+  border-color: var(--primary-100);
+  background: var(--primary-50);
+  animation: otp-pop 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.otp-box:disabled {
+  cursor: default;
+}
+
+/* verifying: wave + shimmer */
+.otp-verifying .otp-box,
+.otp.otp-verifying .otp-box {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: linear-gradient(110deg, var(--primary-50) 30%, var(--surface) 50%, var(--primary-50) 70%);
+  background-size: 250% 100%;
+  animation: otp-wave 0.9s ease-in-out infinite, otp-shimmer 1.2s linear infinite;
+  animation-delay: calc(var(--i) * 85ms), 0s;
+}
+
+/* success: boxes flip green one by one */
+.otp.otp-success .otp-box {
+  animation: otp-flip 0.5s cubic-bezier(0.3, 1.3, 0.5, 1) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+/* error: shake + red */
+.otp.otp-error {
+  animation: otp-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+.otp.otp-error .otp-box {
+  border-color: var(--danger);
+  background: var(--danger-50);
+  color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-50);
+}
+
+.otp-status {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  text-align: center;
+}
+.otp-verifying {
+  color: var(--primary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.otp-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 4px;
+}
+.otp-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: otp-dot 1s infinite;
+}
+.otp-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.otp-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.otp-success-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--success);
+  font-weight: 700;
+  font-size: 15px;
+  animation: fade-up 0.3s ease 0.35s both;
+}
+.otp-check {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(18, 161, 80, 0.45);
+  animation: otp-ring 1.2s ease-out 0.45s;
+}
+.otp-check-circle {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 3.5;
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: otp-draw 0.5s ease-out 0.4s forwards;
+}
+.otp-check-mark {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: otp-draw 0.35s ease-out 0.8s forwards;
+}
+.otp-error-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+  font-weight: 600;
+  animation: fade-up 0.2s ease;
+}
+
+@keyframes otp-pop {
+  0% {
+    transform: scale(0.86);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes otp-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes otp-shimmer {
+  to {
+    background-position: -250% 0;
+  }
+}
+@keyframes otp-flip {
+  0% {
+    transform: rotateX(0);
+  }
+  45% {
+    transform: rotateX(90deg);
+    background: var(--primary-50);
+  }
+  55% {
+    transform: rotateX(90deg);
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+  }
+  100% {
+    transform: rotateX(0) scale(1);
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+    box-shadow: 0 8px 18px -8px rgba(18, 161, 80, 0.7);
+  }
+}
+@keyframes otp-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(4px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-8px);
+  }
+  40%,
+  60% {
+    transform: translateX(8px);
+  }
+}
+@keyframes otp-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+@keyframes otp-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes otp-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(18, 161, 80, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(18, 161, 80, 0);
+  }
+}
+
+@media (max-width: 420px) {
+  .otp {
+    gap: 6px;
+  }
+  .otp-box {
+    width: 42px;
+    height: 54px;
+    font-size: 22px;
+    border-radius: 12px;
+  }
+  .otp-box:nth-child(3) {
+    margin-right: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .otp-box,
+  .otp,
+  .otp-check-circle,
+  .otp-check-mark {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

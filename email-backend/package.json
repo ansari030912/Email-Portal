@@ -1,0 +1,35 @@
+{
+  "name": "im-email-portal-backend",
+  "version": "1.0.0",
+  "description": "InvoiceMate internal email portal - captures beta emails from every project and shows them to the assigned team members",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed:users": "node scripts/seedPortalUsers.js",
+    "create:client": "node scripts/createIngestClient.js",
+    "test:ingest": "node scripts/sendTestEmail.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.7.5",
+    "hash-wasm": "^4.13.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.10",
+    "otplib": "^13.4.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
