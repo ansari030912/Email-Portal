@@ -482,7 +482,8 @@ h4 {
 }
 .pw-rules {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 4 in a row when there is room, 2 x 2 on narrow panels - labels are never cut */
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 8px;
 }
 .pw-rule {
@@ -490,8 +491,8 @@ h4 {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  height: 36px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 7px 10px;
   border-radius: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -505,9 +506,7 @@ h4 {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
   transition: color 0.2s;
 }
 .pw-rule.ok .pw-label {
@@ -572,11 +571,6 @@ h4 {
 }
 .input-state.error {
   background: var(--danger);
-}
-@media (max-width: 560px) {
-  .pw-rules {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .hint {

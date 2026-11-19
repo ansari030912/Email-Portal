@@ -88,7 +88,7 @@ function Sidebar({ onNavigate }) {
           <span className="truncate">All mailboxes</span>
         </NavLink>
         {!loaded && <MailboxListSkeleton count={3} />}
-        {loaded && mailboxes.length === 0 && <div className="side-empty">No mailbox assigned to you yet</div>}
+        {loaded && mailboxes.length === 0 && <div className="side-empty">No mailbox yet</div>}
         <div className="mailbox-list">
           {mailboxes.map((m) => (
             <NavLink

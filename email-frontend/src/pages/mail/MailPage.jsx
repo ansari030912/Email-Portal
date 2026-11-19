@@ -154,8 +154,8 @@ export default function MailPage() {
   const emptyView = () => {
     if (noMailboxes || (mailboxesLoaded && mailboxes.length === 0)) {
       return (
-        <EmptyState icon={Lock} title="No mailbox assigned yet">
-          Mailboxes shared with you will appear here.
+        <EmptyState icon={Lock} title="No mails yet">
+          Mails will appear here.
         </EmptyState>
       );
     }
