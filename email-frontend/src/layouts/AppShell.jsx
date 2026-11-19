@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Mail, Inbox, MailOpen, Star, Users, KeyRound, ScrollText, AtSign, Settings, LogOut, Search, Moon, Sun,
-  Menu as MenuIcon, X, Clock, ShieldCheck, ChevronDown,
+  Menu as MenuIcon, X, Clock, ShieldCheck, ChevronDown, Ticket,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { MailboxProvider, useMailboxes } from "../context/MailboxContext";
 import { Avatar, Dropdown, RoleBadge } from "../components/ui";
+import { MailboxListSkeleton } from "../components/Skeletons";
+import WelcomeOverlay from "../components/WelcomeOverlay";
 import { colorFor, formatDuration } from "../utils/format";
 import "../styles/shell.css";
 
@@ -41,7 +43,7 @@ function SessionTimer() {
 
 function Sidebar({ onNavigate }) {
   const { user } = useAuth();
-  const { mailboxes, totals } = useMailboxes();
+  const { mailboxes, totals, loaded } = useMailboxes();
   const [params] = useSearchParams();
   const location = useLocation();
   const onMail = location.pathname.startsWith("/mail");
@@ -85,7 +87,8 @@ function Sidebar({ onNavigate }) {
           <AtSign size={18} />
           <span className="truncate">All mailboxes</span>
         </NavLink>
-        {mailboxes.length === 0 && <div className="side-empty">No mailbox assigned to you yet</div>}
+        {!loaded && <MailboxListSkeleton count={3} />}
+        {loaded && mailboxes.length === 0 && <div className="side-empty">No mailbox assigned to you yet</div>}
         <div className="mailbox-list">
           {mailboxes.map((m) => (
             <NavLink
@@ -111,6 +114,9 @@ function Sidebar({ onNavigate }) {
             </NavLink>
             <NavLink to="/admin/users" className="side-link">
               <Users size={18} /> <span>Team members</span>
+            </NavLink>
+            <NavLink to="/admin/referrals" className="side-link">
+              <Ticket size={18} /> <span>Referrals</span>
             </NavLink>
             <NavLink to="/admin/projects" className="side-link">
               <KeyRound size={18} /> <span>Projects</span>
@@ -224,6 +230,8 @@ export default function AppShell() {
 
   return (
     <MailboxProvider>
+      {/* plays once after a fresh login; must stay right before .shell (CSS sibling selector) */}
+      <WelcomeOverlay />
       <div className={`shell ${drawer ? "drawer-open" : ""}`}>
         <div className="drawer-backdrop" onClick={() => setDrawer(false)} />
         <Sidebar onNavigate={() => setDrawer(false)} />

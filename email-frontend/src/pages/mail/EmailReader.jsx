@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Star, MailOpen, Paperclip, Download, ExternalLink, FileText, Code2, Info, Eye, Copy, Check,
-  ChevronDown, ChevronUp, AlertTriangle, Globe, Server, User as UserIcon,
+  ArrowLeft, Star, MailOpen, Paperclip, Download, ExternalLink, Info, Eye, Copy, Check,
+  ChevronDown, ChevronUp, AlertTriangle, Globe, Users, HardDrive,
 } from "lucide-react";
-import { Avatar, ProjectTag, Spinner, EmptyState } from "../../components/ui";
+import { Avatar, ProjectTag, EmptyState, firstLetter } from "../../components/ui";
+import { ReaderSkeleton } from "../../components/Skeletons";
 import EmailFrame from "./EmailFrame";
 import { attachmentUrl, getEmailById } from "../../api/endpoints";
 import { copyText, formatBytes, formatFullDate } from "../../utils/format";
@@ -42,121 +43,132 @@ function KV({ rows }) {
   );
 }
 
+function PersonChip({ person }) {
+  return (
+    <span className="person-chip" title={person.address}>
+      <Avatar email={person.address} letter={firstLetter(person.address)} size={24} />
+      <span className="person-text">
+        {person.name && <b>{person.name}</b>}
+        <span>{person.address}</span>
+      </span>
+    </span>
+  );
+}
+
 function DetailsTab({ email }) {
   const s = email.source || {};
+  const people = [
+    ["From", email.from ? [email.from] : []],
+    ["To", email.to],
+    ["Cc", email.cc],
+    ["Bcc", email.bcc],
+    ["Reply-To", email.replyTo],
+  ].filter(([, list]) => list && list.length);
+  const files = (email.attachments || []).filter((a) => !a.isInline).length;
+  const tiles = [
+    { icon: Globe, label: "Project", value: email.project ? <ProjectTag project={email.project} /> : "—" },
+    { icon: HardDrive, label: "Size", value: formatBytes(email.sizeBytes) },
+    { icon: Paperclip, label: "Attachments", value: files ? String(files) : "None" },
+  ];
+
   return (
-    <div className="details">
-      <section>
-        <h4>
-          <Info size={15} /> Message
-        </h4>
-        <KV
-          rows={[
-            ["Subject", email.subject],
-            ["Sent at (project)", formatFullDate(email.sentAt)],
-            ["Captured by portal", formatFullDate(email.receivedAt)],
-            ["Message-ID", <span className="mono">{email.messageId}</span>],
-            ["Size", formatBytes(email.sizeBytes)],
-            ["Priority", email.priority],
-          ]}
-        />
-      </section>
-      <section>
-        <h4>
-          <UserIcon size={15} /> Envelope
-        </h4>
-        <KV
-          rows={[
-            ["From", fmtList(email.from ? [email.from] : [])],
-            ["Sender", fmtList(email.sender ? [email.sender] : [])],
-            ["Reply-To", fmtList(email.replyTo)],
-            ["To", fmtList(email.to)],
-            ["Cc", fmtList(email.cc)],
-            ["Bcc", fmtList(email.bcc)],
-          ]}
-        />
-      </section>
-      <section>
-        <h4>
-          <Globe size={15} /> Source
-        </h4>
-        <KV
-          rows={[
-            ["Project", email.project ? `${email.project.name} (${email.project.key})` : null],
-            ["Environment", s.environment],
-            ["Service", s.service],
-            ["App URL", s.appUrl && <a href={s.appUrl} target="_blank" rel="noreferrer noopener">{s.appUrl}</a>],
-            ["Domain", s.domain],
-            ["Trigger", s.trigger],
-          ]}
-        />
-      </section>
-      <section>
-        <h4>
-          <Server size={15} /> Server
-        </h4>
-        <KV
-          rows={[
-            ["Hostname", s.serverHostname],
-            ["Server IPs", s.serverIps?.join(", ")],
-            ["Request IP", s.requestIp],
-            ["Client", s.userAgent],
-            ["Node", s.nodeVersion],
-            ["SDK", s.sdkVersion],
-          ]}
-        />
-      </section>
-      <section className="span-2">
-        <h4>
-          <UserIcon size={15} /> Linked accounts in {email.project?.name || "project"}
-        </h4>
-        <div className="table-wrap">
-          <table className="table compact">
-            <thead>
-              <tr>
-                <th>Address</th>
-                <th>Field</th>
-                <th>User / Admin _id</th>
-                <th>Type</th>
-                <th>Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              {email.recipients.map((r) => (
-                <tr key={`${r.kind}-${r.address}`}>
-                  <td>{r.address}</td>
-                  <td>
-                    <span className="badge">{r.kind}</span>
-                  </td>
-                  <td className="mono">{r.userId || <span className="faint">not linked</span>}</td>
-                  <td>{r.userType || "—"}</td>
-                  <td>{r.userRole || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      {(email.templateName || email.templateData) && (
-        <section className="span-2">
-          <h4 style={{ justifyContent: "space-between" }}>
-            <span className="row">
-              <FileText size={15} /> Template {email.templateName && <span className="badge primary">{email.templateName}</span>}
+    <div className="dt">
+      <div className="dt-tiles">
+        {tiles.map(({ icon: Icon, label, value, sub, title }) => (
+          <div className="dt-tile" key={label} title={title}>
+            <span className="dt-tile-icon">
+              <Icon size={16} />
             </span>
-            {email.templateData && <CopyButton text={JSON.stringify(email.templateData, null, 2)} label="Copy JSON" />}
-          </h4>
-          {email.templateData ? <pre className="code">{JSON.stringify(email.templateData, null, 2)}</pre> : <p className="faint">No template variables sent.</p>}
-        </section>
-      )}
-      {email.headers && (
-        <section className="span-2">
+            <div style={{ minWidth: 0 }}>
+              <span className="dt-label">{label}</span>
+              <div className="dt-value">{value}</div>
+              {sub && <span className="dt-sub">{sub}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="dt-grid">
+        <section className="dt-card">
           <h4>
-            <Code2 size={15} /> Custom headers
+            <Users size={15} /> People
           </h4>
-          <pre className="code">{JSON.stringify(email.headers, null, 2)}</pre>
+          <div className="dt-people">
+            {people.map(([label, list]) => (
+              <div className="dt-people-row" key={label}>
+                <span className="dt-label">{label}</span>
+                <div className="dt-chips">
+                  {list.map((p) => (
+                    <PersonChip key={label + p.address} person={p} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
-      )}
+
+        <section className="dt-card">
+          <h4>
+            <Info size={15} /> Message
+          </h4>
+          <div className="dt-rows">
+            <div className="dt-row">
+              <span className="dt-label">Subject</span>
+              <span className="dt-row-value">{email.subject}</span>
+            </div>
+            {(s.domain || s.appUrl) && (
+              <div className="dt-row">
+                <span className="dt-label">Sent from</span>
+                <span className="dt-row-value">
+                  {s.appUrl ? (
+                    <a href={s.appUrl} target="_blank" rel="noreferrer noopener" className="dt-link">
+                      {s.domain || s.appUrl} <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    s.domain
+                  )}
+                </span>
+              </div>
+            )}
+            <div className="dt-row">
+              <span className="dt-label">Priority</span>
+              <span className="dt-row-value">
+                <span className={`badge ${email.priority === "high" ? "danger" : email.priority === "low" ? "" : "primary"}`}>
+                  {email.priority || "normal"}
+                </span>
+              </span>
+            </div>
+            <div className="dt-row">
+              <span className="dt-label">Message ID</span>
+              <span className="dt-row-value">
+                <span className="dt-id">
+                  <span className="mono truncate">{email.messageId}</span>
+                  <IdCopy text={email.messageId} />
+                </span>
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
+  );
+}
+
+function IdCopy({ text }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      className="icon-btn sm"
+      title="Copy"
+      onClick={async () => {
+        if (await copyText(text)) {
+          setDone(true);
+          setTimeout(() => setDone(false), 1400);
+        }
+      }}
+    >
+      {done ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
+    </button>
   );
 }
 
@@ -194,13 +206,7 @@ export default function EmailReader({ emailId, onBack, onToggleStar, onMarkUnrea
       </div>
     );
   }
-  if (!email) {
-    return (
-      <div className="reader full-center">
-        <Spinner size={26} />
-      </div>
-    );
-  }
+  if (!email) return <ReaderSkeleton />;
 
   const files = email.attachments.filter((a) => !(a.isInline && a.cid && a.downloadable && email.html?.includes("data:")));
   const tabs = [
@@ -242,24 +248,25 @@ export default function EmailReader({ emailId, onBack, onToggleStar, onMarkUnrea
 
       <div className="reader-scroll">
         <div className="reader-head">
-          <h1>{email.subject}</h1>
-          <div className="row" style={{ flexWrap: "wrap", marginTop: 10 }}>
-            <ProjectTag project={email.project} />
-            {email.source?.environment && <span className="badge warning">{email.source.environment}</span>}
-            {email.templateName && <span className="badge">{email.templateName}</span>}
-            {email.sourceUserId && (
-              <span className="badge primary" title="User / admin _id in the project">
-                <UserIcon size={11} /> {email.sourceUserType || "user"} · {email.sourceUserId}
+          <h1 className="reader-title">
+            {email.subject}
+            {email.project && (
+              <span className="reader-project">
+                <ProjectTag project={email.project} />
               </span>
             )}
-          </div>
+          </h1>
         </div>
 
         <div className="sender">
-          <Avatar name={email.from?.name} email={email.from?.address} size={42} />
+          <Avatar
+            email={email.mailboxes[0] || email.to[0]?.address}
+            letter={firstLetter(email.mailboxes[0] || email.to[0]?.address)}
+            size={42}
+          />
           <div className="sender-info">
             <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-              <b>{email.from?.name || email.from?.address || "Unknown sender"}</b>
+              <b>{email.from?.name || email.from?.address || email.project?.name || email.subject}</b>
               {email.from?.name && <span className="faint">&lt;{email.from.address}&gt;</span>}
             </div>
             <button className="to-line" onClick={() => setShowHeaders((s) => !s)}>

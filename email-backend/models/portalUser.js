@@ -10,10 +10,6 @@ const portalUserSchema = new mongoose.Schema(
     role: { type: String, enum: ALL_ROLES, default: ROLES.USER, index: true },
     isBlocked: { type: Boolean, default: false },
 
-    // Set manually by the SuperAdmin - links this portal member to their mail account.
-    mailAccountId: { type: String, default: null, trim: true },
-    mailAccountEmail: { type: String, default: null, trim: true, lowercase: true },
-
     // Google Authenticator (secrets are AES-256-GCM encrypted, never returned by the API)
     isTwoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String, select: false },

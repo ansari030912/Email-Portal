@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Plus, RefreshCw, Copy, Check, AlertTriangle, Plug, Power, Globe, Trash2 } from "lucide-react";
-import { EmptyState, Modal, Spinner } from "../../components/ui";
+import { EmptyState, Modal } from "../../components/ui";
+import { ProjectCardsSkeleton } from "../../components/Skeletons";
 import { createIngestClient, deleteIngestClient, getAllIngestClients, rotateIngestClientSecret, updateIngestClientSettings } from "../../api/endpoints";
 import { useStepUp } from "../../context/StepUpContext";
 import { useToast } from "../../context/ToastContext";
@@ -145,7 +146,7 @@ export default function ProjectsPage() {
         </div>
 
         {loading ? (
-          <div className="full-center" style={{ padding: 60 }}><Spinner size={24} /></div>
+          <ProjectCardsSkeleton count={3} />
         ) : !clients.length ? (
           <div className="card">
             <EmptyState icon={Plug} title="No project connected" action={<button className="btn btn-primary" onClick={() => setCreateOpen(true)}><Plus size={16} /> Connect project</button>}>

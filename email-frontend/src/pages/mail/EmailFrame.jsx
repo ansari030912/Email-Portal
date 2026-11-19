@@ -22,6 +22,7 @@ const buildDoc = (html) => {
 export default function EmailFrame({ html }) {
   const ref = useRef(null);
   const [height, setHeight] = useState(320);
+  const [minWidth, setMinWidth] = useState(0);
 
   useEffect(() => {
     const frame = ref.current;
@@ -32,6 +33,9 @@ export default function EmailFrame({ html }) {
         const doc = frame.contentDocument;
         if (!doc?.documentElement) return;
         setHeight(Math.max(120, doc.documentElement.scrollHeight, doc.body?.scrollHeight || 0) + 4);
+        // fixed-width templates wider than the panel: grow the frame, the card scrolls sideways
+        const contentWidth = Math.max(doc.documentElement.scrollWidth, doc.body?.scrollWidth || 0);
+        setMinWidth(contentWidth > frame.clientWidth + 2 ? contentWidth : 0);
       } catch {
         /* ignore */
       }
@@ -81,7 +85,7 @@ export default function EmailFrame({ html }) {
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
       srcDoc={buildDoc(html || "")}
-      style={{ height }}
+      style={{ height, minWidth: minWidth || undefined }}
     />
   );
 }

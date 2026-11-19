@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Search, MoreHorizontal, ShieldOff, Ban, CheckCircle2, AtSign, IdCard, ShieldCheck, UserCog } from "lucide-react";
+import { Users, Search, MoreHorizontal, ShieldOff, Ban, CheckCircle2, AtSign, ShieldCheck, UserCog } from "lucide-react";
 import { Avatar, Dropdown, EmptyState, Modal, RoleBadge, Spinner } from "../../components/ui";
 import RolePicker from "../../components/RolePicker";
+import { StatsSkeleton, TableSkeleton } from "../../components/Skeletons";
+import Pagination from "../../components/Pagination";
 import {
-  getAllPortalUsers, resetPortalUserTwoFactor, updatePortalUserMailAccount, updatePortalUserRole, updatePortalUserStatus,
+  getAllPortalUsers, resetPortalUserTwoFactor, updatePortalUserRole, updatePortalUserStatus,
 } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { useStepUp } from "../../context/StepUpContext";
@@ -21,7 +23,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
-  const [mailEdit, setMailEdit] = useState(null);
 
   // The team is small: load it once and filter in the browser -> tabs & search are instant
   const load = useCallback(async () => {
@@ -47,6 +48,17 @@ export default function UsersPage() {
   }, [allUsers, role, search]);
 
   const setUsers = setAllUsers;
+
+  // client side paging over the filtered list
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  useEffect(() => setPage(1), [role, search, limit]);
+  const pageUsers = useMemo(() => users.slice((page - 1) * limit, page * limit), [users, page, limit]);
+  useEffect(() => {
+    // after a filter / delete the current page may no longer exist
+    const pages = Math.max(1, Math.ceil(users.length / limit));
+    if (page > pages) setPage(pages);
+  }, [users.length, limit, page]);
 
   const replace = (u) => setUsers((list) => list.map((x) => (x._id === u._id ? { ...x, ...u } : x)));
 
@@ -84,12 +96,6 @@ export default function UsersPage() {
       resetPortalUserTwoFactor({ userId: u._id, twoFactorCode })
     );
 
-  const saveMailAccount = async () => {
-    const data = await run("Confirm mail account change", undefined, (twoFactorCode) =>
-      updatePortalUserMailAccount({ userId: mailEdit._id, mailAccountId: mailEdit.mailAccountId, mailAccountEmail: mailEdit.mailAccountEmail, twoFactorCode })
-    );
-    if (data) setMailEdit(null);
-  };
 
   const counts = {
     total: allUsers.length,
@@ -104,11 +110,11 @@ export default function UsersPage() {
         <div className="page-head">
           <div>
             <h1>Team members</h1>
-            <p>Promote to Admin, block accounts and set mail account details. Every change asks for your 2FA code.</p>
+            <p>Promote to Admin, block accounts or reset 2FA. Every change asks for your 2FA code.</p>
           </div>
         </div>
 
-        <div className="stats">
+        {loading ? <StatsSkeleton count={4} /> : <div className="stats">
           {[
             [Users, counts.total, "Members", "primary"],
             [UserCog, counts.admins, "Admins & Super Admin", "accent"],
@@ -125,7 +131,7 @@ export default function UsersPage() {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
 
         <div className="card">
           <div className="toolbar">
@@ -143,9 +149,7 @@ export default function UsersPage() {
           </div>
 
           {loading ? (
-            <div className="full-center" style={{ padding: 60 }}>
-              <Spinner size={24} />
-            </div>
+            <TableSkeleton columns={["user", "pill", "pill", "pill", "text", "text", "action"]} rows={5} />
           ) : !users.length ? (
             <EmptyState icon={Users} title="No members found" />
           ) : (
@@ -158,13 +162,12 @@ export default function UsersPage() {
                     <th>2FA</th>
                     <th>Status</th>
                     <th>Mailboxes</th>
-                    <th>Mail account</th>
                     <th>Last login</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => {
+                  {pageUsers.map((u) => {
                     const isSuper = u.role === "SuperAdmin";
                     const isMe = u._id === me._id;
                     return (
@@ -205,22 +208,9 @@ export default function UsersPage() {
                             <AtSign size={14} /> {u.assignedMailboxCount}
                           </button>
                         </td>
-                        <td style={{ fontSize: 12.5 }}>
-                          {u.mailAccountEmail || u.mailAccountId ? (
-                            <>
-                              <div className="truncate" style={{ maxWidth: 190 }}>{u.mailAccountEmail || "—"}</div>
-                              <div className="mono faint truncate" style={{ maxWidth: 190 }}>{u.mailAccountId || ""}</div>
-                            </>
-                          ) : (
-                            <span className="faint">not set</span>
-                          )}
-                        </td>
                         <td className="faint" style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{timeAgo(u.lastLoginAt)}</td>
                         <td style={{ textAlign: "right" }}>
                           <Dropdown width={230} trigger={<button className="icon-btn sm" aria-label="Actions"><MoreHorizontal size={17} /></button>}>
-                            <button className="menu-item" onClick={() => setMailEdit({ _id: u._id, name: u.name, mailAccountId: u.mailAccountId || "", mailAccountEmail: u.mailAccountEmail || "" })}>
-                              <IdCard size={16} /> Edit mail account
-                            </button>
                             <button className="menu-item" onClick={() => navigate(`/admin/mailboxes?userId=${u._id}`)}>
                               <AtSign size={16} /> View mailboxes
                             </button>
@@ -247,34 +237,10 @@ export default function UsersPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <Modal
-        open={!!mailEdit}
-        onClose={() => setMailEdit(null)}
-        icon={IdCard}
-        title="Mail account"
-        subtitle={mailEdit ? `Set manually for ${mailEdit.name}` : ""}
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setMailEdit(null)}>Cancel</button>
-            <button className="btn btn-primary" onClick={saveMailAccount}>Save</button>
-          </>
-        }
-      >
-        {mailEdit && (
-          <>
-            <div className="field">
-              <label>mailAccountId</label>
-              <input className="input mono" value={mailEdit.mailAccountId} onChange={(e) => setMailEdit((m) => ({ ...m, mailAccountId: e.target.value }))} placeholder="e.g. 665f1c2e9b1e8a0012345678" />
-            </div>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>mailAccountEmail</label>
-              <input className="input" value={mailEdit.mailAccountEmail} onChange={(e) => setMailEdit((m) => ({ ...m, mailAccountEmail: e.target.value }))} placeholder="name@company.com" />
-            </div>
-          </>
+        {!loading && users.length > 0 && (
+          <Pagination page={page} limit={limit} total={users.length} onPage={setPage} onLimit={setLimit} label="members" />
         )}
-      </Modal>
+      </div>
     </div>
   );
 }

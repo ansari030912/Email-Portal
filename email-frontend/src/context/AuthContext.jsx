@@ -12,11 +12,15 @@ export function AuthProvider({ children }) {
   const toast = useToast();
   const expiryTimer = useRef(null);
 
-  const signIn = useCallback((nextUser, nextSession) => {
+  // welcome: true -> play the welcome loading animation once (fresh login only)
+  const [welcome, setWelcome] = useState(false);
+  const signIn = useCallback((nextUser, nextSession, { welcome: showWelcome = false } = {}) => {
     setUser(nextUser);
     if (nextSession) setSession(nextSession);
     setEndReason(null);
+    if (showWelcome) setWelcome(true);
   }, []);
+  const finishWelcome = useCallback(() => setWelcome(false), []);
 
   const clear = useCallback((reason) => {
     setUser(null);
@@ -78,7 +82,7 @@ export function AuthProvider({ children }) {
   }, [session, clear, toast]);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, endReason, signIn, signOut, refreshProfile, setUser }}>
+    <AuthContext.Provider value={{ user, session, loading, endReason, signIn, signOut, refreshProfile, setUser, welcome, finishWelcome }}>
       {children}
     </AuthContext.Provider>
   );

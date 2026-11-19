@@ -12,10 +12,11 @@ const loginLimiter = rateLimit({
   message: message("Too many login attempts. Please wait 15 minutes."),
 });
 
-// Account creation: 5 / hour per IP
+// Account creation (already gated by a referral code): 10 failed tries / hour per IP
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  limit: 5,
+  limit: 10,
+  skipSuccessfulRequests: true,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: message("Too many accounts created from this network. Try again later."),
@@ -49,4 +50,13 @@ const ingestLimiter = rateLimit({
   message: message("Too many emails pushed in one minute"),
 });
 
-module.exports = { loginLimiter, registerLimiter, twoFactorLimiter, apiLimiter, ingestLimiter };
+// Referral code checks: 20 / 15 min per IP
+const inviteCheckLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: message("Too many referral code attempts. Please wait 15 minutes."),
+});
+
+module.exports = { loginLimiter, registerLimiter, twoFactorLimiter, apiLimiter, ingestLimiter, inviteCheckLimiter };

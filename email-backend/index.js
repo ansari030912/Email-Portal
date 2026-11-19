@@ -19,6 +19,7 @@ const emailInbox = require("./routes/emailInbox");
 const emailIngest = require("./routes/emailIngest");
 const ingestClients = require("./routes/ingestClients");
 const activityLogs = require("./routes/activityLogs");
+const inviteReferral = require("./routes/inviteReferral");
 
 const REQUIRED_ENV = ["MONGODB_URL", "APP_SECRET", "PRIVATE_PEM", "PUBLIC_PEM", "SERVICE_JWT_SECRET", "DATA_ENCRYPTION_KEY"];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
@@ -94,6 +95,7 @@ if (missing.length) {
   app.use("/email-inbox", emailInbox);
   app.use("/ingest-clients", ingestClients);
   app.use("/activity-logs", activityLogs);
+  app.use("/invite-referral", inviteReferral);
 
   // ---------------- 404 + errors ----------------
   app.use((req, res) => res.status(404).json({ success: false, message: "Route not found" }));

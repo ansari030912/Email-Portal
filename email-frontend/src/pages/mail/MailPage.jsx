@@ -4,6 +4,7 @@ import { RefreshCw, ChevronLeft, ChevronRight, MailOpen, Mail, Inbox, Lock, Star
 import EmailList, { EmailListSkeleton } from "./EmailList";
 import EmailReader from "./EmailReader";
 import { EmptyState } from "../../components/ui";
+import { ChipsSkeleton } from "../../components/Skeletons";
 import { getMyInboxEmails, getMyInboxProjects, updateEmailReadStatus, updateEmailStarStatus } from "../../api/endpoints";
 import { useMailboxes } from "../../context/MailboxContext";
 import { useToast } from "../../context/ToastContext";
@@ -30,6 +31,7 @@ export default function MailPage() {
   const [spinning, setSpinning] = useState(false);
   const [noMailboxes, setNoMailboxes] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const listRef = useRef(null);
   const queryKey = `${box}|${folder}|${q}|${project}|${page}`;
@@ -78,7 +80,8 @@ export default function MailPage() {
   useEffect(() => {
     getMyInboxProjects()
       .then((d) => setProjects(d.projects))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setProjectsLoaded(true));
   }, [mailboxes.length]);
 
   const refresh = async () => {
@@ -185,13 +188,19 @@ export default function MailPage() {
           </button>
         </div>
 
-        {projects.length > 1 && (
+        {!projectsLoaded && <ChipsSkeleton />}
+        {projectsLoaded && projects.length > 1 && (
           <div className="filter-chips">
             <button className={`fchip ${!project ? "on" : ""}`} onClick={() => setParam({ project: null, page: null, id: null })}>
               All projects
             </button>
             {projects.map((p) => (
-              <button key={p.key} className={`fchip ${project === p.key ? "on" : ""}`} onClick={() => setParam({ project: p.key, page: null, id: null })}>
+              <button
+                key={p.key}
+                className={`fchip ${project === p.key ? "on" : ""}`}
+                style={{ "--c": colorFor(p.key) }}
+                onClick={() => setParam({ project: p.key, page: null, id: null })}
+              >
                 <span className="mailbox-dot" style={{ background: colorFor(p.key), margin: 0 }} />
                 {p.name}
               </button>

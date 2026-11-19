@@ -3,6 +3,8 @@ const crypto = require("crypto");
 const router = express.Router();
 
 const PortalUser = require("../models/portalUser");
+const Invite = require("../models/invite");
+const { checkInvite } = require("./inviteReferral");
 const portalAuthMiddleware = require("../middleware/portalAuthMiddleware");
 const { checkStepUpTwoFactor } = require("../middleware/requireTwoFactorCode");
 const { loginLimiter, registerLimiter } = require("../middleware/rateLimiters");
@@ -30,21 +32,37 @@ let dummyHashPromise = null;
 const getDummyHash = () => (dummyHashPromise ||= hashPassword(crypto.randomBytes(16).toString("hex")));
 
 // ---------------------------------------------------------------------------
-// POST /auth/registerUser  - anyone can create a plain "User" account.
-// A new account sees NO emails until the SuperAdmin assigns mailboxes to it.
+// POST /auth/registerUser { name, email, password, inviteCode }
+// Invite-only: needs a referral the SuperAdmin created for THIS email. The code
+// must be valid, unused, not expired and issued for the same email. It is claimed
+// atomically, so one code can create exactly one account.
+// A new account is a plain "User" and sees NO emails until mailboxes are assigned.
 // ---------------------------------------------------------------------------
 router.post("/registerUser", registerLimiter, async (req, res) => {
+  let claimedInviteId = null;
   try {
     const name = String(req.body?.name || "").trim();
     const email = normalizeEmail(req.body?.email);
     const password = req.body?.password;
 
+    if (!req.body?.inviteCode) {
+      return sendError(res, 403, "Registration needs a referral code from the Super Admin", { code: "INVITE_REQUIRED" });
+    }
     if (name.length < 2 || name.length > 80) return sendError(res, 400, "Enter your full name (2-80 characters)");
     if (!isValidEmail(email)) return sendError(res, 400, "Enter a valid email address");
     if (!validatePasswordStrength(password)) return sendError(res, 400, PASSWORD_HINT);
 
-    const exists = await PortalUser.exists({ email });
-    if (exists) return sendError(res, 409, "An account with this email already exists");
+    const check = await checkInvite(email, req.body.inviteCode);
+    if (!check.ok) return sendError(res, check.status, check.message, { code: check.code });
+
+    // claim the referral - only one request can win this update
+    const claimed = await Invite.findOneAndUpdate(
+      { _id: check.invite._id, email, status: "pending", expiresAt: { $gt: new Date() } },
+      { $set: { status: "used", usedAt: new Date() } },
+      { new: true }
+    );
+    if (!claimed) return sendError(res, 400, "This referral code has already been used", { code: "INVITE_USED" });
+    claimedInviteId = claimed._id;
 
     const user = await PortalUser.create({
       name,
@@ -53,10 +71,22 @@ router.post("/registerUser", registerLimiter, async (req, res) => {
       role: ROLES.USER, // role can only be raised by the SuperAdmin
       passwordChangedAt: new Date(),
     });
+    await Invite.updateOne({ _id: claimed._id }, { $set: { usedBy: user._id } });
 
-    await logActivity({ req, actor: user, action: "USER_REGISTERED", targetType: "PortalUser", targetId: user._id });
+    await logActivity({
+      req,
+      actor: user,
+      action: "USER_REGISTERED",
+      targetType: "PortalUser",
+      targetId: user._id,
+      details: { email, inviteId: String(claimed._id) },
+    });
     return sendSuccess(res, { user: toPublicUser(user) }, "Account created. You can log in now.", 201);
   } catch (error) {
+    // account was not created -> give the referral back so it can be used again
+    if (claimedInviteId) {
+      await Invite.updateOne({ _id: claimedInviteId, usedBy: { $exists: false } }, { $set: { status: "pending" }, $unset: { usedAt: 1 } }).catch(() => {});
+    }
     if (error?.code === 11000) return sendError(res, 409, "An account with this email already exists");
     console.error("registerUser error:", error);
     return sendError(res, 500, "Internal server error");

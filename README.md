@@ -25,6 +25,7 @@ Seeded accounts (password `Hello@123`, argon2id hashed):
 
 ## Rules
 
+- **Invite-only registration:** the SuperAdmin creates a referral for one email (needs a 2FA code). The 12 character code is shown once, stored hashed, and works once, only for that email and only until it expires (1-30 days). Wrong, used, expired, cancelled or other-email codes are refused.
 - **Roles:** SuperAdmin, Admin, User. New sign-ups are User. Only the SuperAdmin can change a role, and only to Admin or User. Nobody can be made SuperAdmin through the API.
 - **2FA (Google Authenticator):**
   - Mandatory for SuperAdmin and Admin. The first login after a correct password forces setup (QR code + code). Later logins ask for the code.
@@ -45,11 +46,12 @@ Seeded accounts (password `Hello@123`, argon2id hashed):
 
 | Collection | What |
 |---|---|
-| `portalusers` | portal accounts (`mailAccountId`, `mailAccountEmail` set manually by SuperAdmin) |
+| `portalusers` | portal accounts (role, argon2id password, encrypted 2FA secret, session state) |
 | `emails` | captured email: html, text, from/to/cc/bcc/replyTo, template name + variables, source (project, domain, app URL, server hostname/IPs, request IP), linked user/admin `_id` per recipient |
 | `toEmails` | one per recipient address: `{ email, user_id: [] }` + counts |
 | `emailattachments` | attachment bytes (10 MB max each) |
 | `ingestclients` | connected projects + encrypted signing secrets |
+| `invites` | referrals: email, hashed code, status, expiry, who created / used it |
 | `activitylogs` | audit trail |
 
 ## Connecting a project (microservice API)
@@ -95,7 +97,8 @@ DeFa (`DEFA-S2-BE`) and PayMate (`psp-paymate-backend`) are already wired:
 | `routes/googleAuth2fa.js` `/google-auth-2fa` | verifyLoginTwoFactorCode, getTwoFactorStatus, generateTwoFactorSetup, enableTwoFactor, disableTwoFactor |
 | `routes/emailInbox.js` `/email-inbox` | getMyMailboxes, getMyInboxEmails, getMyInboxProjects, getEmailById/:emailId, updateEmailReadStatus, updateEmailStarStatus, downloadEmailAttachment/:emailId/:attachmentId |
 | `routes/recipientMailbox.js` `/recipient-mailbox` (SuperAdmin) | getAllRecipientMailboxes, getRecipientMailboxProjects, assignRecipientMailboxesToUsers, unassignRecipientMailboxesFromUsers, setRecipientMailboxUsers |
-| `routes/userManagement.js` `/user-management` (SuperAdmin) | getAllPortalUsers, updatePortalUserRole, updatePortalUserStatus, updatePortalUserMailAccount, resetPortalUserTwoFactor |
+| `routes/userManagement.js` `/user-management` (SuperAdmin) | getAllPortalUsers, updatePortalUserRole, updatePortalUserStatus, resetPortalUserTwoFactor |
 | `routes/ingestClients.js` `/ingest-clients` (SuperAdmin) | getAllIngestClients, createIngestClient, rotateIngestClientSecret, updateIngestClientSettings |
+| `routes/inviteReferral.js` `/invite-referral` | verifyInviteReferral (public), createInviteReferral, getAllInviteReferrals, revokeInviteReferral (SuperAdmin + 2FA) |
 | `routes/activityLogs.js` `/activity-logs` (SuperAdmin) | getActivityLogs |
 | `routes/emailIngest.js` `/email-ingest` (HMAC) | saveEmail, checkIngestConnection |

@@ -1,20 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, EyeOff, Check, X } from "lucide-react";
+import { Eye, EyeOff, Check, X, ShieldCheck } from "lucide-react";
 import { colorFor, initials, passwordChecks } from "../utils/format";
 
-export function Avatar({ name, email, size = 36 }) {
+// `letter` = show exactly this (e.g. the first letter of an email address) instead of initials
+export function Avatar({ name, email, size = 36, letter }) {
   const seed = email || name || "";
   return (
     <span
       className="avatar"
-      style={{ width: size, height: size, fontSize: Math.max(11, size * 0.38), background: colorFor(seed) }}
+      style={{ width: size, height: size, fontSize: Math.max(11, size * (letter ? 0.44 : 0.38)), background: colorFor(seed) }}
       title={name || email}
     >
-      {initials(name || email)}
+      {letter || initials(name || email)}
     </span>
   );
 }
+
+// first letter of an email address: "hello@maildrop.cc" -> "H"
+export const firstLetter = (address) => (String(address || "").trim().match(/[a-z0-9]/i)?.[0] || "?").toUpperCase();
 
 export function Spinner({ size = 18 }) {
   return <span className="spinner" style={{ width: size, height: size }} />;
@@ -71,13 +75,14 @@ export function Modal({ open, onClose, title, subtitle, icon: Icon, children, fo
   );
 }
 
-export function PasswordInput({ value, onChange, placeholder, autoComplete, icon: Icon, autoFocus, name }) {
+// status: "error" | "success" -> coloured border + ✓ / ✕ inside the field (no extra height)
+export function PasswordInput({ value, onChange, placeholder, autoComplete, icon: Icon, autoFocus, name, status }) {
   const [show, setShow] = useState(false);
   return (
     <div className="input-wrap">
       {Icon && <Icon size={17} />}
       <input
-        className="input"
+        className={`input ${status ? `is-${status}` : ""}`}
         type={show ? "text" : "password"}
         value={value}
         name={name}
@@ -85,33 +90,91 @@ export function PasswordInput({ value, onChange, placeholder, autoComplete, icon
         placeholder={placeholder}
         autoComplete={autoComplete}
         autoFocus={autoFocus}
-        style={{ paddingRight: 44, ...(Icon ? {} : { paddingLeft: 14 }) }}
+        style={{ paddingRight: status ? 74 : 44, ...(Icon ? {} : { paddingLeft: 14 }) }}
       />
-      <button type="button" className="icon-btn sm input-action" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"}>
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
+      <div className="input-action row" style={{ gap: 2 }}>
+        {status && (
+          <span key={status} className={`input-state ${status}`} aria-label={status === "success" ? "Passwords match" : "Passwords don't match"}>
+            {status === "success" ? <Check size={12} strokeWidth={3.5} /> : <X size={12} strokeWidth={3.5} />}
+          </span>
+        )}
+        <button type="button" className="icon-btn sm" onClick={() => setShow((s) => !s)} aria-label={show ? "Hide password" : "Show password"}>
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
     </div>
   );
 }
 
-export function PasswordStrength({ password }) {
+// Confirm-password feedback. While the typed text is still the start of the password
+// nothing is shown, so the user isn't told "don't match" halfway through typing.
+export const passwordMatchState = (password, confirm) => {
+  if (!confirm) return null;
+  if (confirm === password) return "success";
+  if (password.startsWith(confirm)) return null;
+  return "error";
+};
+
+export function PasswordMatch({ password, confirm }) {
+  const state = passwordMatchState(password, confirm);
+  if (!state) return null;
+  const ok = state === "success";
+  return (
+    <span key={state} className={`field-note ${ok ? "ok" : "bad"}`} role="status">
+      {ok ? <Check size={13} strokeWidth={3} /> : <X size={13} strokeWidth={3} />}
+      {ok ? "Passwords match" : "Passwords don't match"}
+    </span>
+  );
+}
+
+// Each rule is one segment with its label right under it; the segment fills when the rule passes.
+const STRENGTH = [
+  { label: "Too weak", tone: "danger" },
+  { label: "Weak", tone: "danger" },
+  { label: "Fair", tone: "warning" },
+  { label: "Good", tone: "good" },
+  { label: "Strong", tone: "success" },
+];
+// `confirm` (optional) adds a "passwords match" row at the bottom of the panel
+export function PasswordStrength({ password, confirm }) {
   const checks = passwordChecks(password);
   const score = checks.filter((c) => c.ok).length;
-  const colors = ["var(--border-strong)", "var(--danger)", "var(--warning)", "#84cc16", "var(--success)"];
+  const level = STRENGTH[score];
+  const match = confirm === undefined ? undefined : passwordMatchState(password, confirm);
   return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: "flex", gap: 4 }}>
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i < score ? colors[score] : "var(--surface-3)", transition: "background .25s" }} />
-        ))}
+    <div className="pw-strength" data-tone={level.tone}>
+      <div className="pw-head">
+        <span>Password strength</span>
+        <span className="pw-level">
+          <ShieldCheck size={13} /> {level.label}
+        </span>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8 }}>
+      <div className="pw-meter" aria-hidden="true">
+        <span style={{ width: `${(score / checks.length) * 100}%` }} />
+      </div>
+      <div className="pw-rules">
         {checks.map((c) => (
-          <span key={c.label} className="hint" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: c.ok ? "var(--success)" : undefined }}>
-            {c.ok ? <Check size={12} /> : <span style={{ width: 12, textAlign: "center" }}>•</span>} {c.label}
-          </span>
+          <div key={c.label} className={`pw-rule ${c.ok ? "ok" : ""}`} title={c.hint}>
+            <span className="pw-mark">{c.ok ? <Check size={11} strokeWidth={3.5} /> : null}</span>
+            <span className="pw-label">{c.label}</span>
+          </div>
         ))}
       </div>
+      {confirm !== undefined && (
+        <div className={`pw-match ${match || "idle"}`}>
+          <span className="pw-mark">
+            {match === "success" && <Check size={11} strokeWidth={3.5} />}
+            {match === "error" && <X size={11} strokeWidth={3.5} />}
+          </span>
+          {match === "success"
+            ? "Passwords match"
+            : match === "error"
+            ? "Passwords don't match"
+            : confirm
+            ? "Keep typing to confirm…"
+            : "Re-type the new password to confirm"}
+        </div>
+      )}
     </div>
   );
 }

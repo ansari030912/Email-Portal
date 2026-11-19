@@ -3,6 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { AtSign, Search, UserPlus, UserMinus, Users, Inbox, CheckCircle2, CircleDashed, ChevronLeft, ChevronRight, Lock, X } from "lucide-react";
 import { Avatar, EmptyState, Modal, Spinner } from "../../components/ui";
 import UserPicker from "../../components/UserPicker";
+import SelectMenu from "../../components/SelectMenu";
+import AssigneeStack from "../../components/AssigneeStack";
+import Pagination from "../../components/Pagination";
+import { StatsSkeleton, TableSkeleton } from "../../components/Skeletons";
 import {
   assignRecipientMailboxesToUsers, getAllPortalUsers, getAllRecipientMailboxes, getRecipientMailboxProjects,
   setRecipientMailboxUsers, unassignRecipientMailboxesFromUsers,
@@ -25,6 +29,7 @@ export default function MailboxesPage() {
   const [status, setStatus] = useState("all");
   const [project, setProject] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
   const [selected, setSelected] = useState(() => new Set());
   const [dialog, setDialog] = useState(null); // { mode: assign|unassign|set, ids, userIds }
   const [saving, setSaving] = useState(false);
@@ -43,7 +48,7 @@ export default function MailboxesPage() {
     const id = ++requestId.current;
     setFetching(true);
     try {
-      const data = await getAllRecipientMailboxes({ search: debouncedSearch, status, project, userId: userFilter, page, limit: 25 });
+      const data = await getAllRecipientMailboxes({ search: debouncedSearch, status, project, userId: userFilter, page, limit });
       if (id !== requestId.current) return; // a newer filter already started - drop this answer
       setItems(data.mailboxes);
       setStats(data.stats);
@@ -56,7 +61,7 @@ export default function MailboxesPage() {
         setFetching(false);
       }
     }
-  }, [debouncedSearch, status, project, userFilter, page, toast]);
+  }, [debouncedSearch, status, project, userFilter, page, limit, toast]);
 
   useEffect(() => {
     load();
@@ -71,7 +76,7 @@ export default function MailboxesPage() {
   useEffect(() => {
     setPage(1);
     setSelected(new Set());
-  }, [debouncedSearch, status, project, userFilter]);
+  }, [debouncedSearch, status, project, userFilter, limit]);
 
   const filteredUser = users.find((u) => u._id === userFilter);
   const toggle = (id) =>
@@ -117,7 +122,7 @@ export default function MailboxesPage() {
           </div>
         </div>
 
-        <div className="stats">
+        {loading ? <StatsSkeleton count={3} /> : <div className="stats">
           <div className="card stat">
             <div className="card-icon"><Inbox size={18} /></div>
             <div><b>{stats.total}</b><span>Recipient addresses</span></div>
@@ -130,7 +135,7 @@ export default function MailboxesPage() {
             <div className="card-icon" style={{ background: "var(--warning-50)", color: "var(--warning)" }}><CircleDashed size={18} /></div>
             <div><b>{stats.unassigned}</b><span>Waiting for an owner</span></div>
           </div>
-        </div>
+        </div>}
 
         <div className="card">
           <div className="toolbar">
@@ -144,10 +149,12 @@ export default function MailboxesPage() {
               ))}
             </div>
             {projects.length > 0 && (
-              <select className="select sm" style={{ width: 190 }} value={project} onChange={(e) => setProject(e.target.value)}>
-                <option value="">All projects</option>
-                {projects.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <SelectMenu
+                width={210}
+                value={project}
+                onChange={setProject}
+                options={[{ value: "", label: "All projects" }, ...projects.map((p) => ({ value: p, label: p, dot: true }))]}
+              />
             )}
             {filteredUser && (
               <span className="chip">
@@ -158,7 +165,7 @@ export default function MailboxesPage() {
           </div>
 
           {loading ? (
-            <div className="full-center" style={{ padding: 60 }}><Spinner size={24} /></div>
+            <TableSkeleton columns={["check", "user", "pill", "text", "text", "pill", "action"]} rows={6} />
           ) : !items.length ? (
             <EmptyState icon={AtSign} title="No recipient addresses yet">
               Addresses appear here automatically the first time a project saves an email for them.
@@ -212,18 +219,7 @@ export default function MailboxesPage() {
                         )}
                       </td>
                       <td>
-                        {m.users.length ? (
-                          <div className="assignee-chips">
-                            {m.users.slice(0, 3).map((u) => (
-                              <span key={u._id} className="chip" title={u.email}>
-                                <Avatar name={u.name} email={u.email} size={20} /> <span className="truncate" style={{ maxWidth: 90 }}>{u.name}</span>
-                              </span>
-                            ))}
-                            {m.users.length > 3 && <span className="chip" style={{ paddingLeft: 10 }}>+{m.users.length - 3}</span>}
-                          </div>
-                        ) : (
-                          <span className="badge warning"><Lock size={11} /> Nobody</span>
-                        )}
+                        <AssigneeStack users={m.users} />
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <button className="btn btn-secondary btn-sm" onClick={() => setDialog({ mode: "set", ids: [m._id], email: m.email, userIds: m.users.map((u) => u._id) })}>
@@ -237,15 +233,20 @@ export default function MailboxesPage() {
             </div>
           )}
 
-          {pagination.pages > 1 && (
-            <div className="pager">
-              Page {pagination.page} of {pagination.pages} · {pagination.total} addresses
-              <div className="spacer" />
-              <button className="icon-btn sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft size={17} /></button>
-              <button className="icon-btn sm" disabled={page >= pagination.pages} onClick={() => setPage(page + 1)}><ChevronRight size={17} /></button>
-            </div>
-          )}
         </div>
+        {!loading && pagination.total > 0 && (
+          <Pagination
+            page={page}
+            limit={limit}
+            total={pagination.total}
+            onPage={(p) => {
+              setPage(p);
+              setSelected(new Set());
+            }}
+            onLimit={setLimit}
+            label="addresses"
+          />
+        )}
 
         {selected.size > 0 && (
           <div className="bulk-bar">

@@ -29,7 +29,6 @@ export const attachmentUrl = (emailId, attachmentId) =>
 export const getAllPortalUsers = (params) => request("GET", `/user-management/getAllPortalUsers${qs(params)}`);
 export const updatePortalUserRole = (body) => request("PUT", "/user-management/updatePortalUserRole", body);
 export const updatePortalUserStatus = (body) => request("PUT", "/user-management/updatePortalUserStatus", body);
-export const updatePortalUserMailAccount = (body) => request("PUT", "/user-management/updatePortalUserMailAccount", body);
 export const resetPortalUserTwoFactor = (body) => request("PUT", "/user-management/resetPortalUserTwoFactor", body);
 
 // ---- super admin: mailbox access ----
@@ -45,6 +44,12 @@ export const createIngestClient = (body) => request("POST", "/ingest-clients/cre
 export const rotateIngestClientSecret = (body) => request("PUT", "/ingest-clients/rotateIngestClientSecret", body);
 export const updateIngestClientSettings = (body) => request("PUT", "/ingest-clients/updateIngestClientSettings", body);
 export const deleteIngestClient = (body) => request("DELETE", "/ingest-clients/deleteIngestClient", body);
+
+// ---- referrals (invite-only registration) ----
+export const verifyInviteReferral = (body) => request("POST", "/invite-referral/verifyInviteReferral", body);
+export const getAllInviteReferrals = (params) => request("GET", `/invite-referral/getAllInviteReferrals${qs(params)}`);
+export const createInviteReferral = (body) => request("POST", "/invite-referral/createInviteReferral", body);
+export const revokeInviteReferral = (body) => request("PUT", "/invite-referral/revokeInviteReferral", body);
 
 // ---- super admin: activity ----
 export const getActivityLogs = (params) => request("GET", `/activity-logs/getActivityLogs${qs(params)}`);

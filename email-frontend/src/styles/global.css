@@ -97,9 +97,26 @@ a {
 ::selection {
   background: var(--primary-100);
 }
+/* clearly visible scrollbars (thin grey ones were nearly invisible on Windows) */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: color-mix(in srgb, var(--text-3) 70%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 55%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-2) 75%, transparent);
+  background-clip: padding-box;
 }
 h1,
 h2,
@@ -341,6 +358,227 @@ h4 {
   background: var(--success-50);
   color: var(--success);
 }
+/* validation state on inputs + small feedback pill under a field */
+.input.is-error,
+.input.is-error:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-50);
+}
+.input.is-success,
+.input.is-success:focus {
+  border-color: var(--success);
+  box-shadow: 0 0 0 4px var(--success-50);
+}
+.field-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  animation: note-in 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.field-note svg {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  border-radius: 50%;
+  color: #fff;
+  flex-shrink: 0;
+}
+.field-note.ok {
+  background: var(--success-50);
+  color: var(--success);
+}
+.field-note.ok svg {
+  background: var(--success);
+}
+.field-note.bad {
+  background: var(--danger-50);
+  color: var(--danger);
+  animation: note-in 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), note-shake 0.4s ease 0.05s;
+}
+.field-note.bad svg {
+  background: var(--danger);
+}
+@keyframes note-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+}
+@keyframes note-shake {
+  20%,
+  60% {
+    transform: translateX(-3px);
+  }
+  40%,
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* password strength panel: level badge, one meter, rule tiles, match row */
+.pw-strength {
+  --pw: var(--danger);
+  --pw-soft: var(--danger-50);
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  animation: fade-up 0.2s ease;
+}
+.pw-strength[data-tone="warning"] {
+  --pw: var(--warning);
+  --pw-soft: var(--warning-50);
+}
+.pw-strength[data-tone="good"] {
+  --pw: #65a30d;
+  --pw-soft: color-mix(in srgb, #65a30d 14%, transparent);
+}
+.pw-strength[data-tone="success"] {
+  --pw: var(--success);
+  --pw-soft: var(--success-50);
+}
+.pw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.pw-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--pw-soft);
+  color: var(--pw);
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 0.25s, color 0.25s;
+}
+.pw-meter {
+  height: 6px;
+  margin: 12px 0 14px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.pw-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pw);
+  transition: width 0.4s cubic-bezier(0.3, 1.2, 0.5, 1), background 0.25s;
+}
+.pw-rules {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, background 0.2s;
+}
+.pw-rule.ok {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 6%, var(--surface));
+}
+.pw-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+.pw-rule.ok .pw-label {
+  color: var(--text);
+}
+.pw-mark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border-strong);
+  color: #fff;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.pw-rule.ok .pw-mark {
+  border: none;
+  background: var(--success);
+  animation: otp-pop 0.25s ease;
+}
+.pw-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.pw-match.success {
+  color: var(--success);
+}
+.pw-match.success .pw-mark {
+  border: none;
+  background: var(--success);
+  animation: otp-pop 0.25s ease;
+}
+.pw-match.error {
+  color: var(--danger);
+}
+.pw-match.error .pw-mark {
+  border: none;
+  background: var(--danger);
+  animation: otp-pop 0.25s ease;
+}
+
+/* ✓ / ✕ inside the confirm field */
+.input-state {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  animation: otp-pop 0.25s ease;
+}
+.input-state.success {
+  background: var(--success);
+}
+.input-state.error {
+  background: var(--danger);
+}
+@media (max-width: 560px) {
+  .pw-rules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .hint {
   font-size: 12px;
   color: var(--text-3);
@@ -744,6 +982,15 @@ table.table {
   background-size: 200% 100%;
   animation: shimmer 1.3s infinite;
   border-radius: 6px;
+}
+.bone {
+  display: block;
+  max-width: 100%;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.skeleton-row {
+  animation: fade 0.3s ease both;
 }
 .full-center {
   height: 100%;

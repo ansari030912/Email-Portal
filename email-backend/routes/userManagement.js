@@ -9,7 +9,6 @@ const requireTwoFactorCode = require("../middleware/requireTwoFactorCode");
 const { clearTwoFactor } = require("../utils/twoFactor");
 const { toPublicUser } = require("../utils/sanitizeUser");
 const { logActivity } = require("../utils/activityLogger");
-const { normalizeEmail, isValidEmail } = require("../utils/emailAddress");
 const { sendError, sendSuccess, isValidObjectId, escapeRegex } = require("../utils/apiResponse");
 const { ROLES, ASSIGNABLE_ROLES, ALL_ROLES } = require("../config/constants");
 
@@ -134,44 +133,6 @@ router.put("/updatePortalUserStatus", requireTwoFactorCode, async (req, res) => 
     return sendSuccess(res, { user: toPublicUser(target) }, isBlocked ? "User blocked" : "User unblocked");
   } catch (error) {
     console.error("updatePortalUserStatus error:", error);
-    return sendError(res, 500, "Internal server error");
-  }
-});
-
-// ---------------------------------------------------------------------------
-// PUT /user-management/updatePortalUserMailAccount { userId, mailAccountId, mailAccountEmail, twoFactorCode }
-// Sets user.mailAccountId / user.mailAccountEmail manually. SuperAdmin may set them on
-// their own account too, so self-edit is allowed here.
-// ---------------------------------------------------------------------------
-router.put("/updatePortalUserMailAccount", requireTwoFactorCode, async (req, res) => {
-  try {
-    const { userId } = req.body || {};
-    if (!isValidObjectId(userId)) return sendError(res, 400, "Invalid user id");
-    const target = await PortalUser.findById(userId);
-    if (!target) return sendError(res, 404, "User not found");
-
-    const mailAccountId = String(req.body?.mailAccountId ?? "").trim() || null;
-    const mailAccountEmailRaw = String(req.body?.mailAccountEmail ?? "").trim();
-    const mailAccountEmail = mailAccountEmailRaw ? normalizeEmail(mailAccountEmailRaw) : null;
-    if (mailAccountId && mailAccountId.length > 100) return sendError(res, 400, "mailAccountId is too long");
-    if (mailAccountEmail && !isValidEmail(mailAccountEmail)) return sendError(res, 400, "Enter a valid mail account email");
-
-    const before = { mailAccountId: target.mailAccountId, mailAccountEmail: target.mailAccountEmail };
-    target.mailAccountId = mailAccountId;
-    target.mailAccountEmail = mailAccountEmail;
-    await target.save();
-
-    await logActivity({
-      req,
-      actor: req.user,
-      action: "USER_MAIL_ACCOUNT_UPDATED",
-      targetType: "PortalUser",
-      targetId: target._id,
-      details: { email: target.email, before, after: { mailAccountId, mailAccountEmail } },
-    });
-    return sendSuccess(res, { user: toPublicUser(target) }, "Mail account updated");
-  } catch (error) {
-    console.error("updatePortalUserMailAccount error:", error);
     return sendError(res, 500, "Internal server error");
   }
 });

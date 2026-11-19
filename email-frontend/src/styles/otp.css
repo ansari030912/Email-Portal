@@ -4,14 +4,21 @@
   align-items: center;
   gap: 16px;
 }
+/* boxes share the available width, never wider than 52px - fits any card */
 .otp {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 372px;
   perspective: 600px;
 }
 .otp-box {
-  width: 52px;
-  height: 62px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 52px;
+  height: 60px;
+  padding: 0;
   border-radius: 14px;
   border: 2px solid var(--border-strong);
   background: var(--surface);
@@ -25,7 +32,7 @@
   font-variant-numeric: tabular-nums;
 }
 .otp-box:nth-child(3) {
-  margin-right: 10px;
+  margin-right: 8px;
 }
 .otp-box:focus {
   border-color: var(--primary);
@@ -241,13 +248,12 @@
     gap: 6px;
   }
   .otp-box {
-    width: 42px;
-    height: 54px;
+    height: 52px;
     font-size: 22px;
     border-radius: 12px;
   }
   .otp-box:nth-child(3) {
-    margin-right: 6px;
+    margin-right: 4px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

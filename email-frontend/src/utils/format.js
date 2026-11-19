@@ -62,10 +62,10 @@ export const formatDuration = (ms) => {
 };
 
 export const passwordChecks = (pw = "") => [
-  { label: "8+ characters", ok: pw.length >= 8 },
-  { label: "Upper & lower case", ok: /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
-  { label: "A number", ok: /\d/.test(pw) },
-  { label: "A symbol", ok: /[^A-Za-z0-9]/.test(pw) },
+  { label: "8+ characters", hint: "At least 8 characters", ok: pw.length >= 8 },
+  { label: "A–Z & a–z", hint: "Upper and lower case letters", ok: /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
+  { label: "Number", hint: "At least one number (0-9)", ok: /\d/.test(pw) },
+  { label: "Symbol", hint: "At least one symbol (!@#$…)", ok: /[^A-Za-z0-9]/.test(pw) },
 ];
 
 export const copyText = async (text) => {

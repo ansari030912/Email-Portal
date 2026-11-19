@@ -12,8 +12,6 @@ const toPublicUser = (user) => {
     isTwoFactorEnabled: !!user.isTwoFactorEnabled,
     twoFactorRequired: requiresTwoFactor(user),
     twoFactorEnabledAt: user.twoFactorEnabledAt || null,
-    mailAccountId: user.mailAccountId || null,
-    mailAccountEmail: user.mailAccountEmail || null,
     lastLoginAt: user.lastLoginAt || null,
     passwordChangedAt: user.passwordChangedAt || null,
     createdAt: user.createdAt,

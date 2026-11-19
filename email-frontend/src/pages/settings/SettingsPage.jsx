@@ -1,12 +1,15 @@
-import { useState } from "react";
-import { User, KeyRound, ShieldCheck, Clock, AlertCircle, CheckCircle2, Smartphone, Copy, Check, AtSign } from "lucide-react";
-import { Avatar, Modal, PasswordInput, PasswordStrength, RoleBadge, Spinner } from "../../components/ui";
+import { useEffect, useState } from "react";
+import {
+  User, KeyRound, ShieldCheck, Clock, AlertCircle, CheckCircle2, Smartphone, Copy, Check, Lock,
+  LogIn, PencilLine, ShieldOff, Mail, CalendarClock, Fingerprint,
+} from "lucide-react";
+import { Avatar, Modal, PasswordInput, PasswordMatch, PasswordStrength, RoleBadge, Spinner, passwordMatchState } from "../../components/ui";
 import OtpVerifier from "../../components/OtpVerifier";
 import { changeMyPassword, disableTwoFactor, enableTwoFactor, generateTwoFactorSetup, updateMyProfile } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { useStepUp } from "../../context/StepUpContext";
 import { useToast } from "../../context/ToastContext";
-import { copyText, formatFullDate, passwordChecks, timeAgo } from "../../utils/format";
+import { copyText, formatDuration, formatFullDate, passwordChecks, timeAgo } from "../../utils/format";
 import "../../styles/settings.css";
 
 function Msg({ error, success }) {
@@ -18,6 +21,91 @@ function Msg({ error, success }) {
   );
 }
 
+function SectionCard({ icon: Icon, tone = "primary", title, subtitle, right, children }) {
+  return (
+    <section className="s-card">
+      <header className="s-card-head">
+        <span className={`s-icon tone-${tone}`}>
+          <Icon size={18} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3>{title}</h3>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        {right}
+      </header>
+      <div className="s-card-body">{children}</div>
+    </section>
+  );
+}
+
+function useNow(ms = 30000) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), ms);
+    return () => clearInterval(t);
+  }, [ms]);
+  return now;
+}
+
+/* ------------------------------ Hero + overview ------------------------------ */
+function ProfileHero() {
+  const { user, session } = useAuth();
+  const now = useNow();
+  const left = session?.expiresAt ? new Date(session.expiresAt).getTime() - now : 0;
+
+  const tiles = [
+    {
+      icon: ShieldCheck,
+      tone: user.isTwoFactorEnabled ? "success" : "warning",
+      label: "2-step verification",
+      value: user.isTwoFactorEnabled ? "Active" : "Off",
+    },
+    { icon: KeyRound, tone: "primary", label: "Password changed", value: timeAgo(user.passwordChangedAt) },
+    { icon: Clock, tone: left < 15 * 60000 ? "warning" : "accent", label: "Session ends in", value: formatDuration(left) },
+  ];
+
+  return (
+    <div className="s-hero">
+      <div className="s-hero-cover">
+        <span className="s-hero-orb a" />
+        <span className="s-hero-orb b" />
+      </div>
+      <div className="s-hero-main">
+        <div className="s-hero-avatar">
+          <Avatar name={user.name} email={user.email} size={84} />
+          {user.isTwoFactorEnabled && (
+            <span className="s-hero-shield" title="Protected with 2-step verification">
+              <ShieldCheck size={15} />
+            </span>
+          )}
+        </div>
+        <div className="s-hero-id">
+          <h2>{user.name}</h2>
+          <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+            <span className="muted">{user.email}</span>
+            <RoleBadge role={user.role} />
+          </div>
+        </div>
+      </div>
+      <div className="s-tiles">
+        {tiles.map(({ icon: Icon, tone, label, value }) => (
+          <div className="s-tile" key={label}>
+            <span className={`s-icon sm tone-${tone}`}>
+              <Icon size={16} />
+            </span>
+            <div>
+              <span>{label}</span>
+              <b>{value}</b>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Profile ------------------------------ */
 function ProfileCard() {
   const { user, setUser } = useAuth();
   const stepUp = useStepUp();
@@ -25,6 +113,7 @@ function ProfileCard() {
   const [name, setName] = useState(user.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const changed = name.trim().length >= 2 && name.trim() !== user.name;
 
   const save = async (e) => {
     e.preventDefault();
@@ -45,42 +134,46 @@ function ProfileCard() {
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-icon">
-          <User size={18} />
-        </div>
-        <h3>Profile</h3>
-      </div>
-      <form className="card-pad" onSubmit={save}>
-        <div className="profile-hero">
-          <Avatar name={user.name} email={user.email} size={56} />
-          <div style={{ minWidth: 0 }}>
-            <b className="truncate" style={{ display: "block", fontSize: 16 }}>{user.name}</b>
-            <span className="muted truncate" style={{ display: "block" }}>{user.email}</span>
-            <div style={{ marginTop: 6 }}>
-              <RoleBadge role={user.role} />
-            </div>
-          </div>
-        </div>
+    <SectionCard icon={User} title="Profile" subtitle="How your name appears to the team">
+      <form onSubmit={save}>
         <Msg error={error} />
         <div className="field">
           <label>Full name</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          <div className="input-wrap">
+            <PencilLine size={16} />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
         </div>
         <div className="field">
-          <label>Email</label>
-          <input className="input" value={user.email} disabled />
+          <label>Login email</label>
+          <div className="input-wrap">
+            <Mail size={16} />
+            <input className="input" value={user.email} disabled />
+          </div>
           <span className="hint">Your login email can't be changed.</span>
         </div>
-        <button className="btn btn-primary" disabled={busy || name.trim().length < 2 || name.trim() === user.name}>
-          {busy ? <Spinner /> : "Save changes"}
-        </button>
+        <div className="s-actions">
+          {user.twoFactorRequired && (
+            <span className="hint row" style={{ gap: 5 }}>
+              <Fingerprint size={13} /> Needs a 2FA code
+            </span>
+          )}
+          <div className="spacer" />
+          {changed && (
+            <button type="button" className="btn btn-ghost" onClick={() => setName(user.name)}>
+              Reset
+            </button>
+          )}
+          <button className="btn btn-primary" disabled={busy || !changed}>
+            {busy ? <Spinner /> : "Save changes"}
+          </button>
+        </div>
       </form>
-    </div>
+    </SectionCard>
   );
 }
 
+/* ------------------------------ Password ------------------------------ */
 function PasswordCard() {
   const { user, signIn } = useAuth();
   const stepUp = useStepUp();
@@ -113,44 +206,50 @@ function PasswordCard() {
   };
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-icon">
-          <KeyRound size={18} />
-        </div>
-        <div>
-          <h3>Password</h3>
-          <span className="hint">Last changed {timeAgo(user.passwordChangedAt)}</span>
-        </div>
-      </div>
-      <form className="card-pad" onSubmit={save}>
+    <SectionCard icon={KeyRound} title="Password" subtitle={`Last changed ${timeAgo(user.passwordChangedAt)}`}>
+      <form onSubmit={save}>
         <Msg error={error} />
         <div className="field">
           <label>Current password</label>
-          <PasswordInput value={form.current} onChange={set("current")} autoComplete="current-password" />
+          <PasswordInput value={form.current} onChange={set("current")} autoComplete="current-password" icon={Lock} />
         </div>
-        <div className="field">
-          <label>New password</label>
-          <PasswordInput value={form.next} onChange={set("next")} autoComplete="new-password" />
-          {form.next && <PasswordStrength password={form.next} />}
+        <div className="s-two">
+          <div className="field">
+            <label>New password</label>
+            <PasswordInput value={form.next} onChange={set("next")} autoComplete="new-password" icon={KeyRound} />
+          </div>
+          <div className="field">
+            <label>Confirm new password</label>
+            <PasswordInput
+              value={form.confirm}
+              onChange={set("confirm")}
+              autoComplete="new-password"
+              icon={KeyRound}
+              status={passwordMatchState(form.next, form.confirm)}
+            />
+            <PasswordMatch password={form.next} confirm={form.confirm} />
+          </div>
         </div>
-        <div className="field">
-          <label>Confirm new password</label>
-          <PasswordInput value={form.confirm} onChange={set("confirm")} autoComplete="new-password" />
-          {form.confirm && !matches && <span className="hint" style={{ color: "var(--danger)" }}>Passwords don't match</span>}
+        {form.next && <PasswordStrength password={form.next} />}
+        <div className="s-actions">
+          <span className="hint">All other devices are signed out after a change.</span>
+          <div className="spacer" />
+          <button className="btn btn-primary" disabled={busy || !form.current || !strong || !matches}>
+            {busy ? <Spinner /> : "Update password"}
+          </button>
         </div>
-        <button className="btn btn-primary" disabled={busy || !form.current || !strong || !matches}>
-          {busy ? <Spinner /> : "Update password"}
-        </button>
       </form>
-    </div>
+    </SectionCard>
   );
 }
 
+/* ------------------------------ 2FA ------------------------------ */
 function TwoFactorCard() {
   const { user, setUser } = useAuth();
   const toast = useToast();
-  const mandatory = user.role === "SuperAdmin" || user.role === "Admin";
+  const isSuper = user.role === "SuperAdmin";
+  const mandatory = isSuper || user.role === "Admin";
+  const on = user.isTwoFactorEnabled;
   const [setup, setSetup] = useState(null);
   const [disableOpen, setDisableOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -169,45 +268,67 @@ function TwoFactorCard() {
     }
   };
 
+  const protections = [
+    { icon: LogIn, title: "Every sign in", text: "A 6 digit code after your password", ok: on },
+    { icon: PencilLine, title: "Every account change", text: mandatory ? "Name, password and admin actions" : "When you change your name or password", ok: on },
+    mandatory
+      ? { icon: Lock, title: "Always on", text: `Required for the ${isSuper ? "Super Admin" : "Admin"} role`, ok: true, locked: true }
+      : { icon: ShieldOff, title: "Optional", text: "You can turn it off with password + code", ok: true },
+  ];
+
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-icon" style={{ background: "var(--success-50)", color: "var(--success)" }}>
-          <ShieldCheck size={18} />
+    <section className={`s-card tfa ${on ? "is-on" : "is-off"}`}>
+      <div className="tfa-top">
+        <div className="tfa-visual" aria-hidden="true">
+          <span className="tfa-ring r1" />
+          <span className="tfa-ring r2" />
+          <span className="tfa-shield">{on ? <ShieldCheck size={30} /> : <ShieldOff size={30} />}</span>
         </div>
-        <div style={{ flex: 1 }}>
-          <h3>2-step verification</h3>
-          <span className="hint">Google Authenticator</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+            <h3>2-step verification</h3>
+            <span className={`tfa-status ${on ? "on" : "off"}`}>
+              <span className="tfa-dot" /> {on ? "Protected" : "Not protected"}
+            </span>
+          </div>
+          <p className="muted" style={{ margin: "6px 0 0" }}>
+            {on ? "Google Authenticator is guarding your account." : "Add Google Authenticator as a second step after your password."}
+          </p>
+          {on && user.twoFactorEnabledAt && (
+            <span className="tfa-since">
+              <CalendarClock size={13} /> Enabled {formatFullDate(user.twoFactorEnabledAt)}
+            </span>
+          )}
         </div>
-        {user.isTwoFactorEnabled ? <span className="badge success"><span className="dot" /> On</span> : <span className="badge"><span className="dot" /> Off</span>}
       </div>
-      <div className="card-pad">
-        {user.isTwoFactorEnabled ? (
-          <>
-            <p className="muted" style={{ marginTop: 0 }}>
-              Enabled {user.twoFactorEnabledAt ? formatFullDate(user.twoFactorEnabledAt) : ""}. A code is asked at every login
-              {mandatory ? " and before every change to your account." : "."}
-            </p>
-            {mandatory ? (
-              <div className="info-box">
-                <ShieldCheck size={16} /> 2-step verification is mandatory for the {user.role === "SuperAdmin" ? "Super Admin" : "Admin"} role and can't be turned off.
-                Lost your phone? Ask the Super Admin to reset it.
-              </div>
-            ) : (
-              <button className="btn btn-danger-soft" onClick={() => setDisableOpen(true)}>
-                Turn off 2-step verification
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="muted" style={{ marginTop: 0 }}>Add a second step to your login. Recommended for everyone.</p>
-            <button className="btn btn-primary" onClick={start} disabled={busy}>
-              {busy ? <Spinner /> : <><Smartphone size={16} /> Set up Google Authenticator</>}
-            </button>
-          </>
+
+      <div className="tfa-grid">
+        {protections.map(({ icon: Icon, title, text, ok, locked }) => (
+          <div key={title} className={`tfa-item ${ok ? "ok" : ""}`}>
+            <span className="tfa-item-icon">
+              <Icon size={16} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <b>{title}</b>
+              <span>{text}</span>
+            </div>
+            {ok && <span className="tfa-check">{locked ? <Lock size={13} /> : <Check size={13} />}</span>}
+          </div>
+        ))}
+      </div>
+
+      {!(on && mandatory) && <div className="tfa-foot">
+        {on && !mandatory && (
+          <button className="btn btn-danger-soft" onClick={() => setDisableOpen(true)}>
+            <ShieldOff size={16} /> Turn off 2-step verification
+          </button>
         )}
-      </div>
+        {!on && (
+          <button className="btn btn-gradient" onClick={start} disabled={busy}>
+            {busy ? <Spinner /> : <><Smartphone size={16} /> Set up Google Authenticator</>}
+          </button>
+        )}
+      </div>}
 
       <Modal open={!!setup} onClose={() => setSetup(null)} icon={Smartphone} title="Set up Google Authenticator" subtitle="Scan the QR code, then type the 6 digit code.">
         {setup && (
@@ -252,7 +373,7 @@ function TwoFactorCard() {
           setPassword("");
           setError("");
         }}
-        icon={ShieldCheck}
+        icon={ShieldOff}
         title="Turn off 2-step verification"
         subtitle="Confirm with your password and a code from the app."
       >
@@ -263,7 +384,6 @@ function TwoFactorCard() {
         </div>
         {password && (
           <OtpVerifier
-            key={password.length > 0 ? "on" : "off"}
             autoFocus={false}
             onVerify={async (code) => {
               try {
@@ -283,63 +403,53 @@ function TwoFactorCard() {
           />
         )}
       </Modal>
-    </div>
+    </section>
   );
 }
 
+/* ------------------------------ Session & mail account ------------------------------ */
 function SessionCard() {
   const { user, session } = useAuth();
+  const items = [
+    { icon: Clock, tone: "warning", label: "Session ends", value: formatFullDate(session?.expiresAt) },
+    { icon: LogIn, tone: "primary", label: "Last sign in", value: formatFullDate(user.lastLoginAt) },
+  ];
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-icon" style={{ background: "var(--warning-50)", color: "var(--warning)" }}>
-          <Clock size={18} />
-        </div>
-        <h3>Session & mail account</h3>
+    <SectionCard icon={Clock} tone="warning" title="Session" subtitle="Sessions last 6 hours - signing in elsewhere ends this one">
+      <div className="s-info-grid">
+        {items.map(({ icon: Icon, tone, label, value, mono }) => (
+          <div className="s-info" key={label}>
+            <span className={`s-icon sm tone-${tone}`}>
+              <Icon size={16} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <span>{label}</span>
+              <b className={`truncate ${mono ? "mono" : ""}`}>{value || <i className="faint">Not set</i>}</b>
+            </div>
+          </div>
+        ))}
       </div>
-      <div className="card-pad">
-        <dl className="kv">
-          <div>
-            <dt>Session ends</dt>
-            <dd>{formatFullDate(session?.expiresAt)}</dd>
-          </div>
-          <div>
-            <dt>Last login</dt>
-            <dd>{formatFullDate(user.lastLoginAt)}</dd>
-          </div>
-          <div>
-            <dt>Mail account ID</dt>
-            <dd className="mono">{user.mailAccountId || <span className="faint">not set</span>}</dd>
-          </div>
-          <div>
-            <dt>Mail account email</dt>
-            <dd>{user.mailAccountEmail || <span className="faint">not set</span>}</dd>
-          </div>
-        </dl>
-        <div className="info-box" style={{ marginTop: 16 }}>
-          <AtSign size={16} /> Sessions last 6 hours. Signing in on another device signs you out here. Mail account fields are set by the Super Admin.
-        </div>
-      </div>
-    </div>
+    </SectionCard>
   );
 }
 
 export default function SettingsPage() {
   return (
     <div className="page">
-      <div className="page-inner">
+      <div className="page-inner s-page">
         <div className="page-head">
           <div>
             <h1>Account & security</h1>
-            <p>Manage your profile, password and 2-step verification.</p>
+            <p>Your profile, password and 2-step verification.</p>
           </div>
         </div>
-        <div className="settings-grid">
+        <ProfileHero />
+        <TwoFactorCard />
+        <div className="s-cols">
           <ProfileCard />
-          <TwoFactorCard />
           <PasswordCard />
-          <SessionCard />
         </div>
+        <SessionCard />
       </div>
     </div>
   );

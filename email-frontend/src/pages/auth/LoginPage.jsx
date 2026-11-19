@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowRight, ArrowLeft, ShieldCheck, Smartphone, Copy, Check, AlertCircle, Info } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, ShieldCheck, Smartphone, Copy, Check, AlertCircle, Info, Clock } from "lucide-react";
 import AuthLayout from "../../layouts/AuthLayout";
 import OtpVerifier from "../../components/OtpVerifier";
-import { Avatar, PasswordInput, RoleBadge, Spinner } from "../../components/ui";
+import { Avatar, PasswordInput, Spinner } from "../../components/ui";
 import { loginUser, verifyLoginTwoFactorCode } from "../../api/endpoints";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -51,8 +51,8 @@ export default function LoginPage() {
   const countdown = useCountdown(challenge?.expiresInSeconds || 0, () => backToStart("The verification step expired. Please sign in again."));
 
   const finish = (data) => {
-    signIn(data.user, data.session);
-    toast.success(data.twoFactorJustEnabled ? "2-step verification is on. Welcome!" : `Welcome back, ${data.user.name.split(" ")[0]}`);
+    signIn(data.user, data.session, { welcome: true });
+    if (data.twoFactorJustEnabled) toast.success("2-step verification is on");
     navigate("/mail", { replace: true });
   };
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
     return (
       <AuthLayout>
         <h2>Sign in</h2>
-        <p className="lead">Welcome back - log in to read your team's emails.</p>
+        <p className="lead">Welcome back. Sign in to continue.</p>
 
         {(error || endReason) && (
           <div className={`form-error ${!error ? "info" : ""}`} style={!error ? { background: "var(--primary-50)", color: "var(--primary)" } : undefined}>
@@ -136,52 +136,51 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-switch">
-          New here? <Link to="/register">Create an account</Link>
+          Got a referral code? <Link to="/register">Create your account</Link>
         </p>
       </AuthLayout>
     );
   }
 
+  // small account chip - no role or any other internal detail
   const who = (
-    <div className="who">
-      <Avatar name={challenge.user.name} email={challenge.user.email} size={40} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <b className="truncate">{challenge.user.name}</b>
-        <span className="truncate">{challenge.user.email}</span>
-      </div>
-      <RoleBadge role={challenge.user.role} />
+    <div className="who-chip">
+      <Avatar name={challenge.user.name} email={challenge.user.email} size={28} />
+      <span className="truncate">{challenge.user.email}</span>
+      <button type="button" className="who-switch" onClick={() => backToStart()}>
+        Not you?
+      </button>
+    </div>
+  );
+
+  const timer = (
+    <div className="countdown">
+      <Clock size={13} /> Expires in {countdown}
     </div>
   );
 
   if (step === "setup") {
     return (
       <AuthLayout>
-        <span className="step-pill">
-          <ShieldCheck size={14} /> Required for your role
-        </span>
-        <h2>Set up 2-step verification</h2>
-        <p className="lead">Your account needs Google Authenticator before it can be opened.</p>
+        <div className="auth-icon">
+          <ShieldCheck size={26} />
+        </div>
+        <h2>Secure your account</h2>
+        <p className="lead">Add Google Authenticator to continue.</p>
         {who}
 
-        <div className="setup-steps">
-          <div className="setup-step">
-            <i>1</i>
-            <span>
-              Install <b>Google Authenticator</b> on your phone <Smartphone size={13} style={{ verticalAlign: -2 }} />
-            </span>
-          </div>
-          <div className="setup-step">
-            <i>2</i>
-            <span>
-              Tap <b>+</b> and <b>scan this QR code</b> (or enter the key)
-            </span>
-          </div>
-        </div>
-
         <div className="qr-box">
-          <img src={challenge.qrCode} alt="Google Authenticator QR code" />
+          <img src={challenge.qrCode} alt="QR code" />
           <div style={{ minWidth: 0 }}>
-            <div className="hint">Can't scan? Enter this key</div>
+            <ol className="qr-steps">
+              <li>
+                Open <b>Google Authenticator</b> <Smartphone size={13} style={{ verticalAlign: -2 }} />
+              </li>
+              <li>
+                Tap <b>+</b> and scan the code
+              </li>
+            </ol>
+            <div className="hint">or enter this key</div>
             <div className="secret-key">
               <span className="mono" style={{ flex: 1 }}>
                 {challenge.manualKey.match(/.{1,4}/g).join(" ")}
@@ -193,38 +192,27 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="setup-step" style={{ marginBottom: 14 }}>
-          <i>3</i>
-          <span>
-            Type the <b>6 digit code</b> shown in the app
-          </span>
+        <div className="otp-zone">
+          <span className="otp-zone-label">Enter the 6-digit code from the app</span>
+          <OtpVerifier onVerify={verify} onSuccess={finish} successLabel="You're all set" />
         </div>
-        <div className="otp-card">
-          <OtpVerifier onVerify={verify} onSuccess={finish} successLabel="2-step verification enabled" />
-        </div>
-
-        <div className="countdown">This step expires in {countdown}</div>
-        <p className="auth-switch">
-          <a href="#back" onClick={(e) => (e.preventDefault(), backToStart())}>
-            <ArrowLeft size={14} style={{ verticalAlign: -2 }} /> Use a different account
-          </a>
-        </p>
+        {timer}
       </AuthLayout>
     );
   }
 
   return (
     <AuthLayout>
-      <span className="step-pill">
-        <ShieldCheck size={14} /> Step 2 of 2
-      </span>
+      <div className="auth-icon">
+        <ShieldCheck size={26} />
+      </div>
       <h2>Verify it's you</h2>
-      <p className="lead">Enter the 6 digit code from your Google Authenticator app.</p>
+      <p className="lead">Enter the 6-digit code from your authenticator app.</p>
       {who}
-      <div className="otp-card">
+      <div className="otp-zone">
         <OtpVerifier onVerify={verify} onSuccess={finish} />
       </div>
-      <div className="countdown">This step expires in {countdown}</div>
+      {timer}
       <p className="auth-switch">
         <a href="#back" onClick={(e) => (e.preventDefault(), backToStart())}>
           <ArrowLeft size={14} style={{ verticalAlign: -2 }} /> Back to sign in

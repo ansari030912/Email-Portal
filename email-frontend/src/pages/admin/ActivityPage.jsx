@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollText, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { Avatar, EmptyState, Spinner } from "../../components/ui";
+import { Avatar, EmptyState } from "../../components/ui";
+import { TableSkeleton } from "../../components/Skeletons";
+import SelectMenu from "../../components/SelectMenu";
+import Pagination from "../../components/Pagination";
 import { getActivityLogs } from "../../api/endpoints";
 import { useToast } from "../../context/ToastContext";
 import { formatFullDate } from "../../utils/format";
 import "../../styles/admin.css";
 
 const TONE = (action) =>
-  /BLOCKED|LOCKED|DISABLED|RESET|UNASSIGNED|ROTATED/.test(action) ? "danger" : /ROLE|ASSIGNED|USERS_SET|KEY_CREATED/.test(action) ? "primary" : /ENABLED|SUCCESS|REGISTERED/.test(action) ? "success" : "";
+  /BLOCKED|LOCKED|DISABLED|RESET|UNASSIGNED|ROTATED|REVOKED|DELETED/.test(action) ? "danger" : /ROLE|ASSIGNED|USERS_SET|KEY_CREATED|INVITE_CREATED/.test(action) ? "primary" : /ENABLED|SUCCESS|REGISTERED/.test(action) ? "success" : "";
 
 const summary = (d = {}) => {
   if (d.from && d.to) return `${d.email ? `${d.email}: ` : ""}${d.from} → ${d.to}`;
@@ -24,6 +27,7 @@ export default function ActivityPage() {
   const [action, setAction] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +45,7 @@ export default function ActivityPage() {
     const id = ++requestId.current;
     setFetching(true);
     try {
-      const d = await getActivityLogs({ action, search: debouncedSearch, page, limit: 30 });
+      const d = await getActivityLogs({ action, search: debouncedSearch, page, limit });
       if (id !== requestId.current) return;
       setLogs(d.logs);
       setActions(d.actions);
@@ -54,12 +58,12 @@ export default function ActivityPage() {
         setFetching(false);
       }
     }
-  }, [action, debouncedSearch, page, toast]);
+  }, [action, debouncedSearch, page, limit, toast]);
 
   useEffect(() => {
     load();
   }, [load]);
-  useEffect(() => setPage(1), [action, debouncedSearch]);
+  useEffect(() => setPage(1), [action, debouncedSearch, limit]);
 
   return (
     <div className="page">
@@ -76,13 +80,15 @@ export default function ActivityPage() {
               <Search size={16} />
               <input className="input sm" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email, action or IP" />
             </div>
-            <select className="select sm" style={{ width: 240 }} value={action} onChange={(e) => setAction(e.target.value)}>
-              <option value="">All actions</option>
-              {actions.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
+            <SelectMenu
+              width={250}
+              value={action}
+              onChange={setAction}
+              options={[{ value: "", label: "All actions" }, ...actions.map((a) => ({ value: a, label: a }))]}
+            />
           </div>
           {loading ? (
-            <div className="full-center" style={{ padding: 60 }}><Spinner size={24} /></div>
+            <TableSkeleton columns={["text", "user", "pill", "text", "text"]} rows={8} />
           ) : !logs.length ? (
             <EmptyState icon={ScrollText} title="No activity yet" />
           ) : (
@@ -121,15 +127,10 @@ export default function ActivityPage() {
               </table>
             </div>
           )}
-          {pagination.pages > 1 && (
-            <div className="pager">
-              Page {pagination.page} of {pagination.pages}
-              <div className="spacer" />
-              <button className="icon-btn sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft size={17} /></button>
-              <button className="icon-btn sm" disabled={page >= pagination.pages} onClick={() => setPage(page + 1)}><ChevronRight size={17} /></button>
-            </div>
-          )}
         </div>
+        {!loading && pagination.total > 0 && (
+          <Pagination page={page} limit={limit} total={pagination.total} onPage={setPage} onLimit={setLimit} label="events" />
+        )}
       </div>
     </div>
   );

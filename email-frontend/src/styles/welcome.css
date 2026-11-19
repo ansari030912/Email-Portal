@@ -1,0 +1,269 @@
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: #12153a;
+  color: #fff;
+  animation: w-in 0.4s ease both;
+}
+.welcome.leaving {
+  animation: w-out 0.65s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+  pointer-events: none;
+}
+.w-mesh {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.7;
+  z-index: -2;
+  animation: w-drift 12s ease-in-out infinite;
+}
+.w-mesh.w1 {
+  width: 560px;
+  height: 560px;
+  left: 18%;
+  top: 8%;
+  background: #4f6bff;
+}
+.w-mesh.w2 {
+  width: 480px;
+  height: 480px;
+  right: 14%;
+  bottom: 4%;
+  background: #8b5cf6;
+  animation-delay: -6s;
+}
+.w-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse at 50% 45%, #000 15%, transparent 65%);
+}
+.w-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* logo with a spinning gradient ring and two orbiting dots */
+.w-logo {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  animation: w-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.w-logo::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(124, 108, 255, 0.7), transparent);
+  filter: blur(10px);
+  animation: w-glow 2s ease-in-out infinite;
+}
+.w-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, #6c84ff 120deg, #c084fc 220deg, #f472b6 300deg, transparent 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: w-spin 1.1s linear infinite;
+}
+.w-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+}
+.w-orbit.o-a {
+  inset: -18px;
+  animation: w-spin 3.2s linear infinite;
+}
+.w-orbit.o-b {
+  inset: -38px;
+  animation: w-spin 5s linear infinite reverse;
+}
+.w-orbit i {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px 3px rgba(165, 180, 255, 0.9);
+}
+.w-orbit.o-b i {
+  background: #34c77b;
+  box-shadow: 0 0 12px 3px rgba(52, 199, 123, 0.8);
+}
+.w-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #5b7cff, #7b4dff);
+  box-shadow: 0 18px 40px -12px rgba(111, 77, 255, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: w-float 2.4s ease-in-out infinite;
+}
+
+.w-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  animation: w-up 0.6s ease 0.15s both;
+}
+.w-name {
+  background: linear-gradient(90deg, #a5b4ff, #f0abfc, #fff, #a5b4ff);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: w-shimmer 3s linear infinite;
+}
+
+.w-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 250px;
+  animation: w-up 0.6s ease 0.25s both;
+}
+.w-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s;
+}
+.w-step.active {
+  color: rgba(255, 255, 255, 0.92);
+}
+.w-step.done {
+  color: rgba(255, 255, 255, 0.75);
+}
+.w-dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s;
+}
+.w-step.active .w-dot {
+  border-color: #a5b4ff;
+}
+.w-step.active .w-dot i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a5b4ff;
+  animation: w-blink 0.8s ease-in-out infinite;
+}
+.w-step.done .w-dot {
+  border-color: #34c77b;
+  background: #34c77b;
+  color: #fff;
+  animation: w-check 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.w-bar {
+  width: 250px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  animation: w-up 0.6s ease 0.35s both;
+}
+.w-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6c84ff, #c084fc, #34c77b);
+  background-size: 200% 100%;
+  transition: width 0.55s cubic-bezier(0.3, 1, 0.4, 1);
+  animation: w-shimmer 2s linear infinite;
+}
+
+/* the dashboard waits behind the overlay, then rises into view while it leaves */
+/* hidden only while the overlay is fully showing - never once it starts leaving */
+.welcome:not(.leaving) ~ .shell .sidebar,
+.welcome:not(.leaving) ~ .shell .shell-main {
+  opacity: 0;
+}
+.welcome.leaving ~ .shell .sidebar {
+  animation: w-reveal 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.welcome.leaving ~ .shell .shell-main {
+  animation: w-reveal 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) 0.08s both;
+}
+
+@keyframes w-in {
+  from { opacity: 0; }
+}
+@keyframes w-out {
+  to { opacity: 0; transform: scale(1.06); filter: blur(10px); }
+}
+@keyframes w-reveal {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes w-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes w-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@keyframes w-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes w-glow {
+  0%, 100% { opacity: 0.7; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@keyframes w-up {
+  from { opacity: 0; transform: translateY(12px); }
+}
+@keyframes w-shimmer {
+  to { background-position: -300% 0; }
+}
+@keyframes w-blink {
+  0%, 100% { opacity: 0.4; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes w-check {
+  from { transform: scale(0.4); }
+}
+@keyframes w-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(40px, -30px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome *,
+  .welcome {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

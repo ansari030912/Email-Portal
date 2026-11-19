@@ -1,6 +1,6 @@
 import { Star, Paperclip } from "lucide-react";
-import { Avatar, ProjectTag } from "../../components/ui";
-import { colorFor, displayAddress, formatListDate } from "../../utils/format";
+import { Avatar, ProjectTag, firstLetter } from "../../components/ui";
+import { colorFor, formatListDate } from "../../utils/format";
 
 export function EmailListSkeleton() {
   return (
@@ -33,7 +33,10 @@ export default function EmailList({ emails, activeId, selected, onToggleSelect, 
           >
             <div className="mail-item-side" onClick={(ev) => ev.stopPropagation()}>
               <div className="avatar-or-check">
-                <Avatar name={e.from?.name} email={e.from?.address} size={38} />
+                {(() => {
+                  const address = e.mailboxes[0] || e.to[0]?.address;
+                  return <Avatar email={address} letter={firstLetter(address)} size={38} />;
+                })()}
                 <input type="checkbox" className="checkbox" checked={isSel} onChange={() => onToggleSelect(e._id)} aria-label="Select email" />
               </div>
               <button
@@ -47,10 +50,9 @@ export default function EmailList({ emails, activeId, selected, onToggleSelect, 
 
             <div className="mail-item-body">
               <div className="mail-item-top">
-                <span className="mail-from truncate">{displayAddress(e.from)}</span>
+                <span className="mail-from truncate">{e.subject || "(no subject)"}</span>
                 <span className="mail-date">{formatListDate(e.sentAt)}</span>
               </div>
-              <div className="mail-subject truncate">{e.subject}</div>
               <div className="mail-snippet truncate">{e.snippet || "No preview"}</div>
               <div className="mail-meta">
                 <ProjectTag project={e.project} />
@@ -66,7 +68,6 @@ export default function EmailList({ emails, activeId, selected, onToggleSelect, 
                     <Paperclip size={12} /> {e.attachmentCount}
                   </span>
                 )}
-                {e.templateName && <span className="mail-template truncate">{e.templateName}</span>}
               </div>
             </div>
           </li>
