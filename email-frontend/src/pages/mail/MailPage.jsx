@@ -155,14 +155,14 @@ export default function MailPage() {
     if (noMailboxes || (mailboxesLoaded && mailboxes.length === 0)) {
       return (
         <EmptyState icon={Lock} title="No mailbox assigned yet">
-          You'll see emails here as soon as the Super Admin gives you access to a mailbox.
+          Mailboxes shared with you will appear here.
         </EmptyState>
       );
     }
     if (q) return <EmptyState icon={SearchX} title="No emails match your search">Try a different word, address or template name.</EmptyState>;
     if (folder === "starred") return <EmptyState icon={Star} title="No starred emails">Star an email to find it here quickly.</EmptyState>;
     if (folder === "unread") return <EmptyState icon={MailCheck} title="You're all caught up">No unread emails in this view.</EmptyState>;
-    return <EmptyState icon={Inbox} title="Nothing here yet">Emails sent by the beta projects to this mailbox appear here automatically.</EmptyState>;
+    return <EmptyState icon={Inbox} title="Nothing here yet">New messages will show up here.</EmptyState>;
   };
 
   return (
@@ -272,7 +272,7 @@ export default function MailPage() {
           />
         ) : (
           <EmptyState icon={Mail} title="Select an email to read">
-            The exact HTML template, all recipients and where it came from - everything is shown here.
+            Choose a message from the list to open it here.
           </EmptyState>
         )}
       </section>
