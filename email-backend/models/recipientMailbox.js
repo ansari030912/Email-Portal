@@ -10,10 +10,6 @@ const recipientMailboxSchema = new mongoose.Schema(
     displayName: { type: String, default: null },
     user_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "PortalUser" }],
 
-    // Linked account in the source project (DEFA user / PayMate admin ...) - last one seen
-    sourceUserId: { type: String, default: null },
-    sourceUserType: { type: String, default: null },
-
     projects: [{ type: String }], // project keys this address received mail from
     emailCount: { type: Number, default: 0 },
     firstEmailAt: { type: Date },

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Mail, Inbox, MailOpen, Star, Users, KeyRound, ScrollText, AtSign, Settings, LogOut, Search, Moon, Sun,
-  Menu as MenuIcon, X, Clock, ShieldCheck, ChevronDown, Ticket,
+  Menu as MenuIcon, X, Clock, ShieldCheck, ChevronDown, Ticket, Activity,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { MailboxProvider, useMailboxes } from "../context/MailboxContext";
@@ -123,6 +123,9 @@ function Sidebar({ onNavigate }) {
             </NavLink>
             <NavLink to="/admin/activity" className="side-link">
               <ScrollText size={18} /> <span>Activity log</span>
+            </NavLink>
+            <NavLink to="/admin/api-logs" className="side-link">
+              <Activity size={18} /> <span>API logs</span>
             </NavLink>
           </>
         )}

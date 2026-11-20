@@ -27,8 +27,6 @@ const toMailboxDto = (mb) => ({
     role: u.role,
     isBlocked: !!u.isBlocked,
   })),
-  sourceUserId: mb.sourceUserId,
-  sourceUserType: mb.sourceUserType,
   projects: mb.projects || [],
   emailCount: mb.emailCount || 0,
   firstEmailAt: mb.firstEmailAt,

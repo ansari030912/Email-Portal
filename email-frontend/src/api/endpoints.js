@@ -51,5 +51,10 @@ export const getAllInviteReferrals = (params) => request("GET", `/invite-referra
 export const createInviteReferral = (body) => request("POST", "/invite-referral/createInviteReferral", body);
 export const revokeInviteReferral = (body) => request("PUT", "/invite-referral/revokeInviteReferral", body);
 
+// ---- super admin: API logs ----
+export const getApiLogs = (params) => request("GET", `/api-logs/getApiLogs${qs(params)}`);
+export const getApiLogById = (id) => request("GET", `/api-logs/getApiLogById/${id}`);
+export const getApiLogStats = () => request("GET", "/api-logs/getApiLogStats");
+
 // ---- super admin: activity ----
 export const getActivityLogs = (params) => request("GET", `/activity-logs/getActivityLogs${qs(params)}`);

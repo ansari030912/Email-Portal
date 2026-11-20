@@ -20,6 +20,8 @@ const emailIngest = require("./routes/emailIngest");
 const ingestClients = require("./routes/ingestClients");
 const activityLogs = require("./routes/activityLogs");
 const inviteReferral = require("./routes/inviteReferral");
+const apiLogs = require("./routes/apiLogs");
+const apiLogger = require("./middleware/apiLogger");
 
 const REQUIRED_ENV = ["MONGODB_URL", "APP_SECRET", "PRIVATE_PEM", "PUBLIC_PEM", "SERVICE_JWT_SECRET", "DATA_ENCRYPTION_KEY"];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
@@ -43,6 +45,10 @@ if (missing.length) {
       referrerPolicy: { policy: "no-referrer" },
     })
   );
+
+  // ---------------- API logs: every call (request + response) -> "apilogs" ----------------
+  // Mounted before every route so nothing is missed; secrets are redacted.
+  app.use(apiLogger);
 
   // ---------------- Health ----------------
   const health = (req, res) =>
@@ -96,6 +102,7 @@ if (missing.length) {
   app.use("/ingest-clients", ingestClients);
   app.use("/activity-logs", activityLogs);
   app.use("/invite-referral", inviteReferral);
+  app.use("/api-logs", apiLogs);
 
   // ---------------- 404 + errors ----------------
   app.use((req, res) => res.status(404).json({ success: false, message: "Route not found" }));

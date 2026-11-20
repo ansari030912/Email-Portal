@@ -11,6 +11,7 @@ import MailboxesPage from "./pages/admin/MailboxesPage";
 import ProjectsPage from "./pages/admin/ProjectsPage";
 import ActivityPage from "./pages/admin/ActivityPage";
 import ReferralsPage from "./pages/admin/ReferralsPage";
+import ApiLogsPage from "./pages/admin/ApiLogsPage";
 import { AppBootSkeleton } from "./components/Skeletons";
 
 function RequireAuth({ children }) {
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/admin/projects" element={<SuperAdminOnly><ProjectsPage /></SuperAdminOnly>} />
           <Route path="/admin/activity" element={<SuperAdminOnly><ActivityPage /></SuperAdminOnly>} />
           <Route path="/admin/referrals" element={<SuperAdminOnly><ReferralsPage /></SuperAdminOnly>} />
+          <Route path="/admin/api-logs" element={<SuperAdminOnly><ApiLogsPage /></SuperAdminOnly>} />
         </Route>
         <Route path="*" element={<Navigate to="/mail" replace />} />
       </Routes>

@@ -244,9 +244,6 @@ router.get("/getEmailById/:emailId", async (req, res) => {
         priority: email.priority,
         project: email.project ? { key: email.project.key, name: email.project.name } : null,
         source: email.source,
-        sourceUserId: email.sourceUserId,
-        sourceUserType: email.sourceUserType,
-        recipients: email.recipients,
         attachments: (email.attachments || []).map((a) => ({
           _id: String(a._id),
           filename: a.filename,

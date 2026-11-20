@@ -5,18 +5,6 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Who in the source project an address belongs to (DEFA lender, PayMate admin, ...)
-const recipientLinkSchema = new mongoose.Schema(
-  {
-    address: { type: String, required: true },
-    kind: { type: String, enum: ["to", "cc", "bcc"], required: true },
-    userId: { type: String, default: null },
-    userType: { type: String, default: null }, // "user" | "admin" | anything the project sends
-    userRole: { type: String, default: null },
-  },
-  { _id: false }
-);
-
 const attachmentMetaSchema = new mongoose.Schema({
   filename: { type: String, default: "attachment" },
   contentType: { type: String, default: "application/octet-stream" },
@@ -73,11 +61,6 @@ const emailSchema = new mongoose.Schema(
     templateDataJson: { type: String, default: null }, // original template variables (JSON text)
     headersJson: { type: String, default: null },
     priority: { type: String, default: "normal" },
-
-    // Mandatory link to the project's user / admin _id (resolved per recipient)
-    sourceUserId: { type: String, default: null, index: true },
-    sourceUserType: { type: String, default: null },
-    recipients: { type: [recipientLinkSchema], default: [] },
 
     attachments: { type: [attachmentMetaSchema], default: [] },
     sizeBytes: { type: Number, default: 0 },

@@ -25,7 +25,6 @@ const { saveEmailToPortal } = require("../clients/emailPortalClient");
     },
     templateName: "forgotPasswordTemplate",
     templateData: { resetLink: "https://beta.example.com/reset?token=abc123", userName: "Test User" },
-    user: { userId: "665f1c2e9b1e8a0012345678", userType: "user", userRole: "LENDER" },
     trigger: "scripts/sendTestEmail",
   });
   console.log(JSON.stringify(result.portal, null, 2));

@@ -6,7 +6,7 @@
  *
  *   const { isPortalMode, saveEmailToPortal } = require("../utils/emailPortalClient");
  *   if (isPortalMode()) {
- *     return saveEmailToPortal({ mail: mailOptions, templateName, templateData, recipients });
+ *     return saveEmailToPortal({ mail: mailOptions, templateName, templateData });
  *   }
  *   return transporter.sendMail(mailOptions);   // production keeps sending live
  *
@@ -90,7 +90,7 @@ const serializeAttachment = (a) => {
   return { ...base, skippedReason: "No content" };
 };
 
-const buildPayload = ({ mail, templateName, templateData, user, recipients, trigger, idempotencyKey }) => {
+const buildPayload = ({ mail, templateName, templateData, trigger, idempotencyKey }) => {
   const appUrl = process.env.EMAIL_PORTAL_PROJECT_URL || process.env.FRONTEND_URL || null;
   return {
     mail: {
@@ -110,8 +110,6 @@ const buildPayload = ({ mail, templateName, templateData, user, recipients, trig
     },
     templateName: templateName || null,
     templateData: templateData || null,
-    user: user || null,
-    recipients: recipients || [],
     source: {
       environment: process.env.EMAIL_PORTAL_ENVIRONMENT || process.env.NODE_ENV || null,
       service: process.env.EMAIL_PORTAL_SERVICE || process.env.npm_package_name || null,
@@ -158,8 +156,6 @@ const signedPost = async (url, keyId, secret, body) => {
  * @param {object} p.mail           the exact nodemailer mailOptions
  * @param {string} [p.templateName]
  * @param {object} [p.templateData] variables used to render the template
- * @param {object} [p.user]         { userId, userType, userRole } - main user / admin the email is for
- * @param {Array}  [p.recipients]   [{ address, userId, userType, userRole }] - per address link
  * @param {string} [p.trigger]      free text, e.g. "forgot-password"
  * @returns nodemailer-like info object (+ portal details)
  */

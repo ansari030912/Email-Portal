@@ -62,9 +62,14 @@ export function Modal({ open, onClose, title, subtitle, icon: Icon, children, fo
             {subtitle && <p>{subtitle}</p>}
           </div>
           {onClose && (
-            <button className="icon-btn sm" onClick={onClose} aria-label="Close">
-              <X size={18} />
-            </button>
+            <div className="modal-close-wrap">
+              <kbd className="modal-esc" aria-hidden="true">
+                Esc
+              </kbd>
+              <button type="button" className="modal-close" onClick={onClose} aria-label="Close" title="Close (Esc)">
+                <X size={17} strokeWidth={2.4} />
+              </button>
+            </div>
           )}
         </div>
         <div className="modal-body">{children}</div>
@@ -201,14 +206,18 @@ export function Dropdown({ trigger, children, align = "right", width = 220 }) {
   useEffect(() => {
     if (!pos) return undefined;
     const close = () => setPos(null);
-    const onDoc = (e) => !menuRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target) && close();
+    const insideMenu = (target) => !!menuRef.current && target instanceof Node && menuRef.current.contains(target);
+    const onDoc = (e) => !insideMenu(e.target) && !triggerRef.current?.contains(e.target) && close();
+    // close when the PAGE scrolls (the menu would float away from its button),
+    // but not when the menu's own list is scrolled or its scrollbar is dragged
+    const onScroll = (e) => !insideMenu(e.target) && close();
     document.addEventListener("mousedown", onDoc);
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [pos]);
 

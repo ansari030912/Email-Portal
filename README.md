@@ -47,14 +47,17 @@ Seeded accounts (password `Hello@123`, argon2id hashed):
 | Collection | What |
 |---|---|
 | `portalusers` | portal accounts (role, argon2id password, encrypted 2FA secret, session state) |
-| `emails` | captured email: html, text, from/to/cc/bcc/replyTo, template name + variables, source (project, domain, app URL, server hostname/IPs, request IP), linked user/admin `_id` per recipient |
+| `emails` | captured email: html, text, from/to/cc/bcc/replyTo, template name + variables, source (project, domain, app URL, server hostname/IPs, request IP). Matched to mailboxes by to / cc / bcc address |
 | `toEmails` | one per recipient address: `{ email, user_id: [] }` + counts |
 | `emailattachments` | attachment bytes (10 MB max each) |
 | `ingestclients` | connected projects + encrypted signing secrets |
 | `invites` | referrals: email, hashed code, status, expiry, who created / used it |
 | `activitylogs` | audit trail |
+| `apilogs` | every API call: method, path, status, duration, caller (user / project), redacted request + response. Auto-deleted after 3 days |
 
 ## Connecting a project (microservice API)
+
+**Hand this to developers:** [email-backend/docs/SAVE_EMAIL_API.md](email-backend/docs/SAVE_EMAIL_API.md) (full guide, Node / Python / curl examples) and the Postman collection [email-backend/docs/EmailPortal-SaveEmail.postman_collection.json](email-backend/docs/EmailPortal-SaveEmail.postman_collection.json).
 
 1. SuperAdmin → **Projects → Connect project** (or `node scripts/createIngestClient.js <key> "<Name>"`). Copy the key id + secret (the secret is shown once).
 2. Copy `email-backend/clients/emailPortalClient.js` into the project. It has no dependencies.
@@ -63,7 +66,7 @@ Seeded accounts (password `Hello@123`, argon2id hashed):
 ```js
 const { isPortalMode, saveEmailToPortal } = require("../utils/emailPortalClient");
 if (isPortalMode()) {
-  return saveEmailToPortal({ mail: mailOptions, templateName, templateData, user: { userId, userType }, recipients });
+  return saveEmailToPortal({ mail: mailOptions, templateName, templateData });
 }
 ```
 
@@ -86,8 +89,6 @@ DeFa (`DEFA-S2-BE`) and PayMate (`psp-paymate-backend`) are already wired:
 
 - `services/emailService.js` has the portal-mode hook.
 - `utils/emailPortalClient.js` is the client file.
-- `utils/emailPortalRecipients.js` looks up the user/admin `_id` of each recipient through `emailHash`.
-- `sendEmail()` also accepts optional `portalUserId` / `portalUserType` to pass the `_id` explicitly.
 
 ## API list
 
@@ -101,4 +102,5 @@ DeFa (`DEFA-S2-BE`) and PayMate (`psp-paymate-backend`) are already wired:
 | `routes/ingestClients.js` `/ingest-clients` (SuperAdmin) | getAllIngestClients, createIngestClient, rotateIngestClientSecret, updateIngestClientSettings |
 | `routes/inviteReferral.js` `/invite-referral` | verifyInviteReferral (public), createInviteReferral, getAllInviteReferrals, revokeInviteReferral (SuperAdmin + 2FA) |
 | `routes/activityLogs.js` `/activity-logs` (SuperAdmin) | getActivityLogs |
+| `routes/apiLogs.js` `/api-logs` (SuperAdmin) | getApiLogs, getApiLogById/:logId, getApiLogStats |
 | `routes/emailIngest.js` `/email-ingest` (HMAC) | saveEmail, checkIngestConnection |

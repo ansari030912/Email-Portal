@@ -1,0 +1,223 @@
+{
+  "info": {
+    "name": "Email Portal - Save Email API",
+    "description": "Push beta emails into the InvoiceMate Email Portal.\n\nSet the collection variables baseUrl, keyId and secret. The collection pre-request script signs every request (HMAC-SHA256 over \"<timestamp>.<raw body>\"). Do not use {{$dynamic}} variables inside a body - set values in the pre-request script instead (see idempotencyKey).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050"
+    },
+    {
+      "key": "keyId",
+      "value": "imk_xxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "key": "secret",
+      "value": "ims_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "key": "testRecipient",
+      "value": "hello@maildrop.cc"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// one unique key per run - reused automatically if you resend the same request",
+          "pm.variables.set('idempotencyKey', Date.now() + '-' + Math.random().toString(36).slice(2, 10));",
+          "",
+          "// sign exactly the body Postman will send",
+          "const raw = pm.request.body && pm.request.body.mode === 'raw' ? pm.request.body.raw || '' : '';",
+          "const body = pm.variables.replaceIn(raw);",
+          "const timestamp = Math.floor(Date.now() / 1000).toString();",
+          "const secret = pm.collectionVariables.get('secret');",
+          "const signature = CryptoJS.HmacSHA256(timestamp + '.' + body, secret).toString(CryptoJS.enc.Hex);",
+          "",
+          "pm.request.headers.upsert({ key: 'x-portal-key-id', value: pm.collectionVariables.get('keyId') });",
+          "pm.request.headers.upsert({ key: 'x-portal-timestamp', value: timestamp });",
+          "pm.request.headers.upsert({ key: 'x-portal-signature', value: signature });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Check connection (key + secret + clock)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('signature valid', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().message).to.eql('Signature valid');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/email-ingest/checkIngestConnection",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-ingest",
+            "checkIngestConnection"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Save email - minimal",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('saved', () => {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "  pm.expect(pm.response.json().success).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mail\": {\n    \"from\": \"\\\"InvoiceMate\\\" <no-reply@invoicemate.net>\",\n    \"to\": \"{{testRecipient}}\",\n    \"subject\": \"Postman test - minimal\",\n    \"html\": \"<p>Hello from <b>Postman</b>.</p>\"\n  },\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/email-ingest/saveEmail",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-ingest",
+            "saveEmail"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Save email - full (cc, bcc, template, attachment)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('saved', () => {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "  pm.expect(pm.response.json().success).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mail\": {\n    \"from\": \"\\\"DeFa\\\" <no-reply@imdefa.com>\",\n    \"to\": [\n      {\n        \"name\": \"Test User\",\n        \"address\": \"{{testRecipient}}\"\n      }\n    ],\n    \"cc\": [\n      \"qa-team@maildrop.cc\"\n    ],\n    \"bcc\": \"audit@maildrop.cc\",\n    \"replyTo\": \"support@imdefa.com\",\n    \"subject\": \"Postman test - reset your password\",\n    \"html\": \"<!doctype html><html><body style=\\\"font-family:Arial;padding:24px\\\"><h2>Password reset</h2><p>Click below to reset your password.</p><p><a href=\\\"https://beta.example.com/reset?token=abc123\\\">Reset password</a></p></body></html>\",\n    \"text\": \"Password reset: https://beta.example.com/reset?token=abc123\",\n    \"attachments\": [\n      {\n        \"filename\": \"readme.txt\",\n        \"contentType\": \"text/plain\",\n        \"contentBase64\": \"SGVsbG8gZnJvbSB0aGUgRW1haWwgUG9ydGFsIQ==\"\n      }\n    ]\n  },\n  \"templateName\": \"forgotPasswordTemplate\",\n  \"templateData\": {\n    \"resetLink\": \"https://beta.example.com/reset?token=abc123\",\n    \"userName\": \"Test User\"\n  },\n  \"source\": {\n    \"environment\": \"beta\",\n    \"service\": \"postman\",\n    \"appUrl\": \"https://beta.example.com\",\n    \"trigger\": \"postman-collection\"\n  },\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/email-ingest/saveEmail",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-ingest",
+            "saveEmail"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Wrong signature is rejected (401)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// runs after the collection script: overwrite the valid signature",
+              "pm.request.headers.upsert({ key: 'x-portal-signature', value: 'deadbeef' });"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('rejected', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"mail\": { \"to\": \"{{testRecipient}}\", \"subject\": \"should not be saved\" } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/email-ingest/saveEmail",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "email-ingest",
+            "saveEmail"
+          ]
+        }
+      }
+    }
+  ]
+}

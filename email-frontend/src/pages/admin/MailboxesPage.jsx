@@ -165,7 +165,7 @@ export default function MailboxesPage() {
           </div>
 
           {loading ? (
-            <TableSkeleton columns={["check", "user", "pill", "text", "text", "pill", "action"]} rows={6} />
+            <TableSkeleton columns={["check", "user", "pill", "text", "pill", "action"]} rows={6} />
           ) : !items.length ? (
             <EmptyState icon={AtSign} title="No recipient addresses yet">
               Addresses appear here automatically the first time a project saves an email for them.
@@ -181,7 +181,6 @@ export default function MailboxesPage() {
                     <th>Address</th>
                     <th>Projects</th>
                     <th>Emails</th>
-                    <th>Linked account</th>
                     <th>Who can see it</th>
                     <th />
                   </tr>
@@ -207,16 +206,6 @@ export default function MailboxesPage() {
                       <td style={{ whiteSpace: "nowrap" }}>
                         <b>{m.emailCount}</b>
                         <div className="hint">last {timeAgo(m.lastEmailAt)}</div>
-                      </td>
-                      <td className="mono" style={{ fontSize: 11.5 }}>
-                        {m.sourceUserId ? (
-                          <>
-                            <span className="badge" style={{ marginRight: 4 }}>{m.sourceUserType || "user"}</span>
-                            <span className="faint">{m.sourceUserId}</span>
-                          </>
-                        ) : (
-                          <span className="faint">—</span>
-                        )}
                       </td>
                       <td>
                         <AssigneeStack users={m.users} />

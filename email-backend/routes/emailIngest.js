@@ -114,8 +114,6 @@ const prepareAttachments = (list) => {
 //   mail: { from, sender, to, cc, bcc, replyTo, subject, html, text, headers, priority, messageId,
 //           attachments: [{ filename, contentType, contentBase64, cid, path, contentDisposition }] },
 //   templateName, templateData,
-//   user:       { userId, userType, userRole },             // who the email is for (user / admin _id)
-//   recipients: [{ address, userId, userType, userRole }],  // per address link (optional)
 //   source:     { environment, service, appUrl, domain, serverHostname, serverIps, nodeVersion, sdkVersion, trigger },
 //   idempotencyKey, sentAt
 // }
@@ -147,32 +145,9 @@ router.post("/saveEmail", async (req, res) => {
       }
     }
 
-    // ---- who the email belongs to in the source project (user / admin _id) ----
-    const links = new Map();
-    for (const r of Array.isArray(body.recipients) ? body.recipients : []) {
-      const parsed = parseSingleAddress(r?.address || r?.email);
-      if (parsed && r?.userId) {
-        links.set(parsed.address, { userId: str(r.userId, 100), userType: str(r.userType, 50), userRole: str(r.userRole, 50) });
-      }
-    }
-    const primary = body.user && body.user.userId
-      ? { userId: str(body.user.userId, 100), userType: str(body.user.userType, 50), userRole: str(body.user.userRole, 50) }
-      : null;
-
-    const recipients = [];
-    const addKind = (list, kind) =>
-      list.forEach((a) => {
-        let link = links.get(a.address) || null;
-        // an explicit primary user applies to the "to" addresses that have no own link
-        if (!link && primary && kind === "to") link = primary;
-        recipients.push({ address: a.address, kind, userId: link?.userId || null, userType: link?.userType || null, userRole: link?.userRole || null });
-      });
-    addKind(to, "to");
-    addKind(cc, "cc");
-    addKind(bcc, "bcc");
-
-    const firstLinked = primary || recipients.find((r) => r.userId) || null;
-    const recipientAddresses = [...new Set(recipients.map((r) => r.address))];
+    // Emails are matched to mailboxes by address only (to / cc / bcc)
+    const allAddresses = [...to, ...cc, ...bcc];
+    const recipientAddresses = [...new Set(allAddresses.map((a) => a.address))];
 
     // ---- attachments ----
     const { metas, blobs } = prepareAttachments(mail.attachments);
@@ -213,9 +188,6 @@ router.post("/saveEmail", async (req, res) => {
       templateDataJson: toJsonText(body.templateData),
       headersJson: toJsonText(mail.headers),
       priority: ["high", "normal", "low"].includes(mail.priority) ? mail.priority : "normal",
-      sourceUserId: firstLinked?.userId || null,
-      sourceUserType: firstLinked?.userType || null,
-      recipients,
       attachments: metas,
       sizeBytes: (html?.length || 0) + (text?.length || 0) + blobs.reduce((n, b) => n + b.size, 0),
       sentAt: toDate(body.sentAt),
@@ -229,17 +201,13 @@ router.post("/saveEmail", async (req, res) => {
     // ---- one toEmails document per address (user_id stays empty until assigned) ----
     const now = doc.sentAt;
     await RecipientMailbox.bulkWrite(
-      recipients.map((r) => {
-        const name = [...to, ...cc, ...bcc].find((a) => a.address === r.address)?.name;
+      recipientAddresses.map((address) => {
+        const name = allAddresses.find((a) => a.address === address)?.name;
         const set = { lastEmailAt: now };
         if (name) set.displayName = name;
-        if (r.userId) {
-          set.sourceUserId = r.userId;
-          set.sourceUserType = r.userType;
-        }
         return {
           updateOne: {
-            filter: { email: r.address },
+            filter: { email: address },
             update: {
               $setOnInsert: { firstEmailAt: now, user_id: [] },
               $set: set,
@@ -268,7 +236,6 @@ router.post("/saveEmail", async (req, res) => {
       emailId: String(emailId),
       messageId,
       recipients: recipientAddresses.length,
-      linkedUserId: doc.sourceUserId,
       unassignedRecipients: recipientAddresses.filter((a) => !assignedSet.has(a)),
     });
   } catch (error) {
